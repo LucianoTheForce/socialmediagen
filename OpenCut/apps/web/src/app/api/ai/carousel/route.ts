@@ -151,12 +151,36 @@ export async function POST(request: NextRequest) {
       options: textOptions
     });
 
-    const textResult = await openaiService.generateText(carouselPrompt, textOptions);
-    console.log('[Carousel API] OpenAI response received:', {
-      success: !!textResult,
-      contentLength: textResult?.content?.length,
-      hasMetadata: !!textResult?.aiMetadata
-    });
+    let textResult;
+    try {
+      textResult = await openaiService.generateText(carouselPrompt, textOptions);
+      console.log('[Carousel API] OpenAI response received:', {
+        success: !!textResult,
+        contentLength: textResult?.content?.length,
+        hasMetadata: !!textResult?.aiMetadata
+      });
+    } catch (openaiError) {
+      console.error('[Carousel API] OpenAI service failed, using fallback content:', openaiError);
+      // Use fallback content when OpenAI is not available
+      textResult = {
+        content: JSON.stringify({
+          slides: Array.from({ length: canvasCount }, (_, i) => ({
+            slideNumber: i + 1,
+            title: `Slide ${i + 1}: ${prompt.split(' ').slice(0, 3).join(' ')}`,
+            content: `This is slide ${i + 1} content for ${prompt.split(' ').slice(0, 5).join(' ')}...`,
+            backgroundPrompt: `Modern design for ${prompt.split(' ').slice(0, 3).join(' ')}, professional, clean`,
+            cta: i === canvasCount - 1 ? 'Take action now!' : undefined
+          }))
+        }),
+        aiMetadata: {
+          provider: 'fallback',
+          model: 'fallback-content',
+          cost: 0,
+          generatedAt: new Date(),
+          generationTime: 100
+        }
+      };
+    }
     
     const textGenerationTime = Date.now() - textGenerationStart;
 
@@ -198,6 +222,14 @@ export async function POST(request: NextRequest) {
     
     try {
       console.log('[Carousel API] Starting batch image generation...');
+      
+      // Check if Runware API key is available
+      const runwareKey = process.env.RUNWARE_API_KEY;
+      if (!runwareKey || runwareKey.includes('placeholder')) {
+        console.log('[Carousel API] Runware API key not available, skipping image generation');
+        throw new Error('Runware API key not configured');
+      }
+      
       const imageResults = await Promise.all(
         slides.map(async (slide, index) => {
           try {
