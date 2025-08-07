@@ -5,8 +5,9 @@ export const keys = () =>
   createEnv({
     server: {
       BETTER_AUTH_SECRET: z.string(),
-      UPSTASH_REDIS_REST_URL: z.string().url(),
-      UPSTASH_REDIS_REST_TOKEN: z.string(),
+      // Make Redis optional for development/testing
+      UPSTASH_REDIS_REST_URL: z.string().url().optional(),
+      UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
     },
     client: {
       NEXT_PUBLIC_BETTER_AUTH_URL: z.string().url(),
