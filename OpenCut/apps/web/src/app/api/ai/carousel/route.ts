@@ -371,18 +371,30 @@ export async function POST(request: NextRequest) {
     }, { status: 200 });
 
   } catch (error) {
-    console.error('[Carousel API] Error:', error);
+    console.error('[Carousel API] CRITICAL ERROR OCCURRED:', error);
+    console.error('[Carousel API] Error Stack:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error('[Carousel API] Error Type:', typeof error);
+    console.error('[Carousel API] Error Message:', error instanceof Error ? error.message : String(error));
 
-    // Handle specific error types
+    // Enhanced error logging for debugging
     if (error instanceof Error) {
+      console.error('[Carousel API] Detailed Error Info:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+        cause: error.cause
+      });
+
       if (error.message.includes('API key')) {
+        console.error('[Carousel API] API key configuration error detected');
         return NextResponse.json(
-          { error: 'AI service configuration error' },
+          { error: 'AI service configuration error', details: 'API key issue detected' },
           { status: 503 }
         );
       }
 
       if (error.message.includes('rate limit') || error.message.includes('quota')) {
+        console.error('[Carousel API] Rate limit error detected');
         return NextResponse.json(
           { error: 'AI services temporarily unavailable due to rate limits' },
           { status: 429 }
@@ -390,6 +402,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (error.message.includes('content policy') || error.message.includes('safety')) {
+        console.error('[Carousel API] Content policy error detected');
         return NextResponse.json(
           { error: 'Content violates AI safety guidelines' },
           { status: 400 }
@@ -397,9 +410,14 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Generic error response
+    // More detailed generic error response
     return NextResponse.json(
-      { error: 'Failed to generate carousel. Please try again.' },
+      {
+        error: 'Failed to generate carousel. Please try again.',
+        timestamp: new Date().toISOString(),
+        details: error instanceof Error ? error.message : String(error),
+        stack: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : null) : undefined
+      },
       { status: 500 }
     );
   }
