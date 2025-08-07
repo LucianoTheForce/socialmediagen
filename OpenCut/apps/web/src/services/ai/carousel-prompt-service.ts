@@ -16,6 +16,14 @@ interface CarouselPromptOptions {
   contentType: 'educational' | 'promotional' | 'inspirational' | 'storytelling' | 'tips';
 }
 
+interface SlideLayoutSuggestion {
+  layoutType: 'text-focused' | 'image-overlay' | 'split-screen' | 'minimal' | 'bold-statement';
+  textPlacement: 'top' | 'center' | 'bottom' | 'left' | 'right';
+  fontSizeRecommendation: 'large' | 'medium' | 'small';
+  colorScheme: 'high-contrast' | 'monochrome' | 'vibrant' | 'subtle';
+  visualHierarchy: string[];
+}
+
 export class CarouselPromptService {
   private static templates: Record<string, CarouselTemplate> = {
     educational: {
@@ -292,5 +300,128 @@ Create exactly ${slideCount} slides following this structure. Ensure each slide 
     };
 
     return ctaMap[contentType] || ctaMap.educational;
+  }
+
+  static generateSlideLayoutSuggestions(
+    content: string,
+    slideIndex: number,
+    totalSlides: number
+  ): SlideLayoutSuggestion {
+    // Analyze content length and type to suggest appropriate layout
+    const contentLength = content.length;
+    const isFirstSlide = slideIndex === 0;
+    const isLastSlide = slideIndex === totalSlides - 1;
+    
+    // Determine layout type based on content and position
+    let layoutType: SlideLayoutSuggestion['layoutType'];
+    let textPlacement: SlideLayoutSuggestion['textPlacement'];
+    let fontSizeRecommendation: SlideLayoutSuggestion['fontSizeRecommendation'];
+    let colorScheme: SlideLayoutSuggestion['colorScheme'];
+    
+    if (isFirstSlide) {
+      // First slide should grab attention
+      layoutType = 'bold-statement';
+      textPlacement = 'center';
+      fontSizeRecommendation = 'large';
+      colorScheme = 'high-contrast';
+    } else if (isLastSlide) {
+      // Last slide should have clear CTA
+      layoutType = 'text-focused';
+      textPlacement = 'center';
+      fontSizeRecommendation = 'medium';
+      colorScheme = 'vibrant';
+    } else if (contentLength > 120) {
+      // Long content needs more space
+      layoutType = 'text-focused';
+      textPlacement = 'top';
+      fontSizeRecommendation = 'small';
+      colorScheme = 'subtle';
+    } else if (contentLength < 60) {
+      // Short content can be bold
+      layoutType = 'bold-statement';
+      textPlacement = 'center';
+      fontSizeRecommendation = 'large';
+      colorScheme = 'high-contrast';
+    } else {
+      // Medium content
+      layoutType = 'split-screen';
+      textPlacement = 'left';
+      fontSizeRecommendation = 'medium';
+      colorScheme = 'monochrome';
+    }
+
+    // Create visual hierarchy based on content structure
+    const visualHierarchy: string[] = [];
+    if (content.includes('💡') || content.includes('📝') || content.includes('⭐')) {
+      visualHierarchy.push('emoji/icon emphasis');
+    }
+    if (content.includes('•') || content.includes('-') || /\d+\./.test(content)) {
+      visualHierarchy.push('list structure');
+    }
+    if (content.includes('?') || content.includes('!')) {
+      visualHierarchy.push('question/exclamation emphasis');
+    }
+    visualHierarchy.push('main text content');
+    if (isLastSlide) {
+      visualHierarchy.push('call-to-action button');
+    }
+
+    return {
+      layoutType,
+      textPlacement,
+      fontSizeRecommendation,
+      colorScheme,
+      visualHierarchy
+    };
+  }
+
+  static generateCompositionRules(contentType: 'educational' | 'promotional' | 'inspirational' | 'storytelling' | 'tips'): string[] {
+    const baseRules = [
+      'Maintain consistent brand colors throughout carousel',
+      'Use readable typography with sufficient contrast',
+      'Ensure mobile-friendly text sizes (minimum 14px)',
+      'Leave adequate white space for readability',
+      'Create visual flow between slides'
+    ];
+
+    const typeSpecificRules: Record<string, string[]> = {
+      educational: [
+        'Use numbered steps or bullet points for clarity',
+        'Highlight key takeaways with color or typography',
+        'Include progress indicators across slides',
+        'Use diagrams or icons to support complex concepts',
+        'Maintain academic credibility with clean layouts'
+      ],
+      promotional: [
+        'Lead with benefit-focused headlines',
+        'Use contrasting colors for call-to-action elements',
+        'Include social proof elements (testimonials, ratings)',
+        'Create urgency with strategic color and typography',
+        'End with strong, clear call-to-action'
+      ],
+      inspirational: [
+        'Use uplifting imagery and warm color palettes',
+        'Incorporate motivational quotes with elegant typography',
+        'Create emotional connection through visual storytelling',
+        'Use aspirational imagery that resonates with goals',
+        'Include personal elements or authentic stories'
+      ],
+      storytelling: [
+        'Create visual narrative flow between slides',
+        'Use consistent characters or elements throughout',
+        'Build tension and resolution through visual pacing',
+        'Include sensory details in imagery choices',
+        'Maintain story arc structure in layout progression'
+      ],
+      tips: [
+        'Number each tip clearly for easy reference',
+        'Use consistent icon system for different tip types',
+        'Create scannable layouts with quick takeaways',
+        'Include practical examples with visual support',
+        'End with implementation encouragement'
+      ]
+    };
+
+    return [...baseRules, ...(typeSpecificRules[contentType] || typeSpecificRules.educational)];
   }
 }

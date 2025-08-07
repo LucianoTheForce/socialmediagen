@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '~/lib/auth';
 import { openaiService } from '@/services/ai/openai-service';
 import { runwareService } from '@/services/ai/runware-service';
+import { CarouselPromptService } from '@/services/ai/carousel-prompt-service';
 import { AITextGenerationOptions, SocialPlatform, ContentType, ToneOfVoice } from '@/services/ai/types';
 
 interface CarouselSlide {
@@ -11,6 +12,13 @@ interface CarouselSlide {
   content: string;
   cta?: string;
   backgroundPrompt: string;
+  layoutSuggestion?: {
+    layoutType: 'text-focused' | 'image-overlay' | 'split-screen' | 'minimal' | 'bold-statement';
+    textPlacement: 'top' | 'center' | 'bottom' | 'left' | 'right';
+    fontSizeRecommendation: 'large' | 'medium' | 'small';
+    colorScheme: 'high-contrast' | 'monochrome' | 'vibrant' | 'subtle';
+    visualHierarchy: string[];
+  };
 }
 
 interface CarouselGenerationRequest {
@@ -38,6 +46,10 @@ interface CarouselGenerationResult {
     textGenerationTime: number;
     imageGenerationTime: number;
     totalCost: number;
+    contentType?: string;
+    backgroundStrategy?: string;
+    compositionRules?: string[];
+    enhancedFeatures?: string[];
   };
 }
 
@@ -94,57 +106,29 @@ export async function POST(request: NextRequest) {
 
     const startTime = Date.now();
 
-    // Step 1: Generate carousel content
-    console.log('[Carousel API] Starting text generation...');
+    // Step 1: Generate structured carousel content using enhanced prompting
+    console.log('[Carousel API] Starting enhanced text generation...');
     const textGenerationStart = Date.now();
     
-    // Create a structured prompt for carousel generation
-    const carouselPrompt = `
-You are an expert Instagram carousel creator. Create a ${canvasCount}-slide Instagram carousel on the topic: "${prompt}"
-
-TARGET: ${options.targetAudience || 'Instagram users'}
-TONE: ${options.tone || 'friendly'}
-STYLE: ${options.style || 'engaging and modern'}
-
-SLIDE SPECIFICATIONS:
-- Each slide must have a clear, specific purpose
-- Titles: Attention-grabbing, max 60 characters
-- Content: Concise but valuable, max 150 characters per slide
-- Include strategic use of emojis (2-3 per slide max)
-- Create logical flow between slides
-
-BACKGROUND STRATEGY: ${backgroundStrategy}
-${backgroundStrategy === 'thematic' ?
-  '• Create cohesive visual theme with consistent color palette and style' :
-  '• Create unique, varied backgrounds that match each slide\'s content'
-}
-
-INSTAGRAM OPTIMIZATION:
-- Hook readers within first 2 slides
-- Use carousel-specific engagement tactics
-- Include clear value proposition
-- End with strong call-to-action
-- Optimize for mobile viewing
-
-RESPONSE FORMAT (STRICT JSON):
-{
-  "slides": [
-    {
-      "slideNumber": 1,
-      "title": "Attention-grabbing title",
-      "subtitle": "Supporting subtitle (optional)",
-      "content": "Main slide content with clear value",
-      "cta": "Action-oriented text (if applicable)",
-      "backgroundPrompt": "Detailed visual description for ${backgroundStrategy} background generation"
-    }
-  ]
-}
-
-Create exactly ${canvasCount} slides following this structure.`;
-
-    console.log('[Carousel API] Prompt generated:', {
+    // Detect content type and generate structured prompt
+    const contentType = CarouselPromptService.detectContentType(prompt);
+    console.log('[Carousel API] Content type detected:', contentType);
+    
+    const carouselPromptOptions = {
+      topic: prompt,
+      slideCount: canvasCount,
+      backgroundStrategy,
+      tone: options.tone?.toString() || 'friendly',
+      targetAudience: options.targetAudience || 'Instagram users',
+      style: options.style || 'engaging and modern',
+      contentType
+    };
+    
+    const carouselPrompt = CarouselPromptService.generateStructuredPrompt(carouselPromptOptions);
+    console.log('[Carousel API] Enhanced prompt generated:', {
+      contentType,
       promptLength: carouselPrompt.length,
-      canvasCount
+      detectedPatterns: contentType
     });
 
     const textOptions: AITextGenerationOptions = {
@@ -249,9 +233,17 @@ Create exactly ${canvasCount} slides following this structure.`;
         failed: imageResults.filter(r => !r).length
       });
 
-      // Apply generated backgrounds to slides
+      // Apply generated backgrounds to slides with layout suggestions
       slidesWithBackgrounds = slides.map((slide, index) => {
         const backgroundImage = imageResults[index];
+        
+        // Generate layout suggestion for this slide
+        const layoutSuggestion = CarouselPromptService.generateSlideLayoutSuggestions(
+          slide.content,
+          index,
+          slides.length
+        );
+        
         if (backgroundImage) {
           imageCosts += 0.05; // Approximate cost per image
           return {
@@ -260,10 +252,15 @@ Create exactly ${canvasCount} slides following this structure.`;
               id: backgroundImage.id,
               url: (backgroundImage as any).imageURL || (backgroundImage as any).url,
               metadata: backgroundImage
-            }
+            },
+            layoutSuggestion
           };
         }
-        return { ...slide, backgroundImage: undefined };
+        return {
+          ...slide,
+          backgroundImage: undefined,
+          layoutSuggestion
+        };
       });
 
       console.log('[Carousel API] Background images applied to slides:', {
@@ -273,11 +270,20 @@ Create exactly ${canvasCount} slides following this structure.`;
 
     } catch (error) {
       console.error('[Carousel API] Background generation error:', error);
-      // Continue with slides without backgrounds if generation fails
-      slidesWithBackgrounds = slides.map(slide => ({
-        ...slide,
-        backgroundImage: undefined
-      }));
+      // Continue with slides without backgrounds if generation fails, but include layout suggestions
+      slidesWithBackgrounds = slides.map((slide, index) => {
+        const layoutSuggestion = CarouselPromptService.generateSlideLayoutSuggestions(
+          slide.content,
+          index,
+          slides.length
+        );
+        
+        return {
+          ...slide,
+          backgroundImage: undefined,
+          layoutSuggestion
+        };
+      });
       console.log('[Carousel API] Continuing without background images due to error');
     }
     
@@ -285,6 +291,10 @@ Create exactly ${canvasCount} slides following this structure.`;
     console.log('[Carousel API] Image generation completed in:', imageGenerationTime, 'ms');
 
     const totalGenerationTime = Date.now() - startTime;
+
+    // Generate composition rules for the content type
+    const compositionRules = CarouselPromptService.generateCompositionRules(contentType);
+    console.log(`[Carousel API] Generated ${compositionRules.length} composition rules for ${contentType} content`);
 
     // Calculate total cost with enhanced cost tracking
     console.log('[Carousel API] Calculating costs...');
@@ -298,7 +308,20 @@ Create exactly ${canvasCount} slides following this structure.`;
         totalGenerationTime,
         textGenerationTime,
         imageGenerationTime,
-        totalCost
+        totalCost,
+        contentType,
+        backgroundStrategy,
+        compositionRules,
+        enhancedFeatures: [
+          'AI-powered content structuring',
+          'Intelligent slide layout system',
+          'Automatic background generation',
+          'Instagram-optimized formatting',
+          'Consistent visual theming',
+          'Multi-slide coordination',
+          'Composition rule generation',
+          'Cost optimization'
+        ]
       }
     };
 
