@@ -10,6 +10,7 @@ import {
   LucideIcon,
   TypeIcon,
   SettingsIcon,
+  Layers,
 } from "lucide-react";
 import { create } from "zustand";
 
@@ -23,6 +24,7 @@ export type Tab =
   | "captions"
   | "filters"
   | "adjustment"
+  | "carousel"
   | "settings";
 
 export const tabs: { [key in Tab]: { icon: LucideIcon; label: string } } = {
@@ -61,6 +63,10 @@ export const tabs: { [key in Tab]: { icon: LucideIcon; label: string } } = {
   adjustment: {
     icon: SlidersHorizontalIcon,
     label: "Adjustment",
+  },
+  carousel: {
+    icon: Layers,
+    label: "Carousel",
   },
   settings: {
     icon: SettingsIcon,

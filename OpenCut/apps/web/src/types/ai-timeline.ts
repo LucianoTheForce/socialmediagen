@@ -302,3 +302,284 @@ export const DEFAULT_EXPORT_SETTINGS: ExportSettings = {
   fps: 30,
   includeAudio: true,
 };
+
+// Instagram Carousel Specific Types
+export interface InstagramCarouselProject extends MultiCanvasProject {
+  type: 'instagram-carousel';
+  carouselMetadata: CarouselMetadata;
+  canvases: InstagramCarouselCanvas[];
+}
+
+export interface CarouselMetadata {
+  originalPrompt: string;
+  backgroundStrategy: 'unique' | 'thematic';
+  generatedAt: Date;
+  aiGenerationId: string;
+  totalGenerationCost: number;
+  generationTime: number;
+  slideCount: number;
+  maxSlideCount: number;
+  isRegeneratable: boolean;
+  lastRegeneration?: Date;
+}
+
+export interface InstagramCarouselCanvas extends Canvas {
+  format: CanvasFormat;
+  slideMetadata: CarouselSlideMetadata;
+  isActive: boolean;
+  thumbnailUrl?: string;
+}
+
+export interface CarouselSlideMetadata {
+  slideNumber: number;
+  title: string;
+  subtitle?: string;
+  content: string;
+  cta?: string;
+  backgroundPrompt: string;
+  aiGeneratedBackground?: {
+    imageId: string;
+    imageUrl: string;
+    prompt: string;
+    generatedAt: Date;
+    cost: number;
+  };
+  textElements: CarouselTextElement[];
+  lastModified: Date;
+  isGenerated: boolean;
+  isRegenerating?: boolean;
+}
+
+export interface CarouselTextElement {
+  id: string;
+  type: 'title' | 'subtitle' | 'content' | 'cta';
+  text: string;
+  position: {
+    x: number;
+    y: number;
+  };
+  style: {
+    fontSize: number;
+    fontFamily: string;
+    fontWeight: string;
+    color: string;
+    textAlign: 'left' | 'center' | 'right';
+    backgroundColor?: string;
+    padding?: number;
+    borderRadius?: number;
+  };
+  animation?: {
+    type: 'fadeIn' | 'slideIn' | 'typewriter' | 'bounce';
+    delay: number;
+    duration: number;
+  };
+  isEditable: boolean;
+  aiGenerated: boolean;
+}
+
+// Carousel Navigation State
+export interface CarouselNavigationState {
+  activeCanvasId: string;
+  canvasOrder: string[];
+  isNavigationVisible: boolean;
+  thumbnailSize: 'small' | 'medium' | 'large';
+  showAddButton: boolean;
+  maxCanvasCount: number;
+}
+
+// Carousel Generation Options
+export interface CarouselGenerationOptions {
+  prompt: string;
+  canvasCount: number;
+  backgroundStrategy: 'unique' | 'thematic';
+  styleOptions: {
+    tone: 'professional' | 'casual' | 'friendly' | 'playful' | 'inspirational';
+    targetAudience?: string;
+    brandContext?: string;
+    colorScheme?: string;
+  };
+  textOptions: {
+    includeHashtags: boolean;
+    includeEmojis: boolean;
+    maxCharactersPerSlide: number;
+    language: string;
+  };
+  imageOptions: {
+    style: string;
+    quality: 'standard' | 'high' | 'ultra';
+    consistency: boolean;
+  };
+}
+
+// Carousel Export Configuration
+export interface CarouselExportSettings extends ExportSettings {
+  exportType: 'individual' | 'sequence' | 'grid';
+  includeTransitions: boolean;
+  transitionType?: 'fade' | 'slide' | 'zoom';
+  transitionDuration?: number;
+  aspectRatioOverride?: {
+    width: number;
+    height: number;
+  };
+}
+
+// Utility functions for Instagram Carousel
+export const createInstagramCarouselProject = (
+  name: string,
+  userId: string,
+  carouselData: any
+): InstagramCarouselProject => {
+  return {
+    id: `carousel_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+    name,
+    description: `Instagram carousel generated from: "${carouselData.originalPrompt.substring(0, 100)}..."`,
+    type: 'instagram-carousel',
+    canvases: [],
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    userId,
+    isPublic: false,
+    tags: ['instagram', 'carousel', 'ai-generated'],
+    carouselMetadata: {
+      originalPrompt: carouselData.originalPrompt,
+      backgroundStrategy: carouselData.backgroundStrategy,
+      generatedAt: new Date(),
+      aiGenerationId: carouselData.generationId,
+      totalGenerationCost: carouselData.totalCost,
+      generationTime: carouselData.generationTime,
+      slideCount: carouselData.slides.length,
+      maxSlideCount: 10,
+      isRegeneratable: true
+    }
+  };
+};
+
+export const createCarouselCanvas = (
+  slideData: any,
+  slideNumber: number,
+  isActive: boolean = false
+): InstagramCarouselCanvas => {
+  const canvasId = `canvas_${slideNumber}_${Date.now()}`;
+  
+  return {
+    id: canvasId,
+    name: `Slide ${slideNumber}: ${slideData.title}`,
+    format: getCanvasFormatById('instagram-post')!,
+    elements: [],
+    duration: 5000, // 5 seconds default
+    backgroundColor: '#ffffff',
+    backgroundImage: slideData.backgroundImage?.url,
+    isActive,
+    thumbnailUrl: slideData.backgroundImage?.url,
+    slideMetadata: {
+      slideNumber,
+      title: slideData.title,
+      subtitle: slideData.subtitle,
+      content: slideData.content,
+      cta: slideData.cta,
+      backgroundPrompt: slideData.backgroundPrompt,
+      aiGeneratedBackground: slideData.backgroundImage ? {
+        imageId: slideData.backgroundImage.id,
+        imageUrl: slideData.backgroundImage.url,
+        prompt: slideData.backgroundPrompt,
+        generatedAt: new Date(),
+        cost: slideData.backgroundImage.metadata?.cost || 0.05
+      } : undefined,
+      textElements: [],
+      lastModified: new Date(),
+      isGenerated: true
+    },
+    exportSettings: {
+      ...DEFAULT_EXPORT_SETTINGS,
+      format: 'jpg' // Instagram posts are typically images
+    }
+  };
+};
+
+export const getActiveCanvas = (project: InstagramCarouselProject): InstagramCarouselCanvas | null => {
+  return project.canvases.find(canvas => canvas.isActive) || project.canvases[0] || null;
+};
+
+export const setActiveCanvas = (
+  project: InstagramCarouselProject,
+  canvasId: string
+): InstagramCarouselProject => {
+  return {
+    ...project,
+    canvases: project.canvases.map(canvas => ({
+      ...canvas,
+      isActive: canvas.id === canvasId
+    })),
+    updatedAt: new Date()
+  };
+};
+
+export const addCanvasToCarousel = (
+  project: InstagramCarouselProject,
+  position?: number
+): InstagramCarouselProject => {
+  const newSlideNumber = project.canvases.length + 1;
+  const insertPosition = position !== undefined ? position : project.canvases.length;
+  
+  if (newSlideNumber > project.carouselMetadata.maxSlideCount) {
+    throw new Error(`Maximum ${project.carouselMetadata.maxSlideCount} slides allowed`);
+  }
+  
+  const newCanvas = createCarouselCanvas({
+    title: `New Slide ${newSlideNumber}`,
+    content: 'Click to edit this slide content...',
+    backgroundPrompt: 'Instagram post background, modern design'
+  }, newSlideNumber, true);
+  
+  const updatedCanvases = [...project.canvases];
+  updatedCanvases.splice(insertPosition, 0, newCanvas);
+  
+  // Update slide numbers for canvases after insertion point
+  updatedCanvases.forEach((canvas, index) => {
+    canvas.slideMetadata.slideNumber = index + 1;
+    canvas.isActive = canvas.id === newCanvas.id;
+  });
+  
+  return {
+    ...project,
+    canvases: updatedCanvases,
+    carouselMetadata: {
+      ...project.carouselMetadata,
+      slideCount: updatedCanvases.length
+    },
+    updatedAt: new Date()
+  };
+};
+
+export const removeCanvasFromCarousel = (
+  project: InstagramCarouselProject,
+  canvasId: string
+): InstagramCarouselProject => {
+  const filteredCanvases = project.canvases.filter(canvas => canvas.id !== canvasId);
+  
+  if (filteredCanvases.length < 2) {
+    throw new Error('Carousel must have at least 2 slides');
+  }
+  
+  // Update slide numbers and ensure one canvas is active
+  filteredCanvases.forEach((canvas, index) => {
+    canvas.slideMetadata.slideNumber = index + 1;
+    if (index === 0 && !filteredCanvases.some(c => c.isActive)) {
+      canvas.isActive = true;
+    }
+  });
+  
+  return {
+    ...project,
+    canvases: filteredCanvases,
+    carouselMetadata: {
+      ...project.carouselMetadata,
+      slideCount: filteredCanvases.length
+    },
+    updatedAt: new Date()
+  };
+};
+
+export const isInstagramCarouselProject = (project: MultiCanvasProject): project is InstagramCarouselProject => {
+  return 'type' in project && project.type === 'instagram-carousel';
+};

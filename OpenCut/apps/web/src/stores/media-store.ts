@@ -23,6 +23,17 @@ export interface MediaItem {
   color?: string; // Text color
   backgroundColor?: string; // Background color
   textAlign?: "left" | "center" | "right"; // Text alignment
+  // AI-generated carousel properties
+  isAIGenerated?: boolean; // Whether this was AI-generated
+  carouselMetadata?: {
+    carouselId: string; // ID of the carousel this belongs to
+    canvasId: string; // Canvas this background is for
+    slideNumber: number; // Slide number (1-based)
+    generationPrompt: string; // Original prompt used to generate
+    backgroundStrategy: 'unique' | 'thematic'; // Generation strategy
+    generatedAt: Date; // When it was generated
+    aiMetadata?: any; // Additional AI generation metadata
+  };
 }
 
 interface MediaStore {
@@ -38,6 +49,24 @@ interface MediaStore {
   loadProjectMedia: (projectId: string) => Promise<void>;
   clearProjectMedia: (projectId: string) => Promise<void>;
   clearAllMedia: () => void; // Clear local state only
+
+  // AI-generated carousel media management
+  addAIGeneratedImage: (
+    projectId: string,
+    imageUrl: string,
+    metadata: {
+      name: string;
+      carouselId: string;
+      canvasId: string;
+      slideNumber: number;
+      generationPrompt: string;
+      backgroundStrategy: 'unique' | 'thematic';
+      aiMetadata?: any;
+    }
+  ) => Promise<MediaItem>;
+  getCarouselMediaItems: (carouselId: string) => MediaItem[];
+  getCanvasBackground: (carouselId: string, canvasId: string) => MediaItem | undefined;
+  removeCarouselMediaItems: (projectId: string, carouselId: string) => Promise<void>;
 }
 
 // Helper function to determine file type
@@ -323,5 +352,120 @@ export const useMediaStore = create<MediaStore>((set, get) => ({
 
     // Clear local state
     set({ mediaItems: [] });
+  },
+
+  // Add AI-generated image from URL to media browser
+  addAIGeneratedImage: async (projectId: string, imageUrl: string, metadata) => {
+    try {
+      // Fetch the image and convert to File
+      const response = await fetch(imageUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      const file = new File([blob], metadata.name, { type: blob.type });
+      
+      // Get image dimensions
+      const img = new Image();
+      const objectUrl = URL.createObjectURL(file);
+      
+      await new Promise<void>((resolve, reject) => {
+        img.onload = () => {
+          URL.revokeObjectURL(objectUrl);
+          resolve();
+        };
+        img.onerror = reject;
+        img.src = objectUrl;
+      });
+
+      const mediaItem: MediaItem = {
+        id: `ai-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        name: metadata.name,
+        type: "image",
+        file,
+        url: URL.createObjectURL(file),
+        width: img.width,
+        height: img.height,
+        isAIGenerated: true,
+        carouselMetadata: {
+          carouselId: metadata.carouselId,
+          canvasId: metadata.canvasId,
+          slideNumber: metadata.slideNumber,
+          generationPrompt: metadata.generationPrompt,
+          backgroundStrategy: metadata.backgroundStrategy,
+          generatedAt: new Date(),
+          aiMetadata: metadata.aiMetadata,
+        },
+      };
+
+      // Add to store
+      set((state) => ({
+        mediaItems: [...state.mediaItems, mediaItem],
+      }));
+
+      // Save to persistent storage
+      try {
+        await storageService.saveMediaItem(projectId, mediaItem);
+      } catch (error) {
+        console.error("Failed to save AI-generated media item:", error);
+      }
+
+      return mediaItem;
+    } catch (error) {
+      console.error("Failed to add AI-generated image:", error);
+      throw error;
+    }
+  },
+
+  // Get all AI-generated images for a specific carousel
+  getCarouselMediaItems: (carouselId: string): MediaItem[] => {
+    return get().mediaItems.filter(
+      (item) =>
+        item.isAIGenerated &&
+        item.carouselMetadata?.carouselId === carouselId
+    );
+  },
+
+  // Get AI-generated background for specific canvas
+  getCanvasBackground: (carouselId: string, canvasId: string): MediaItem | undefined => {
+    return get().mediaItems.find(
+      (item) =>
+        item.isAIGenerated &&
+        item.carouselMetadata?.carouselId === carouselId &&
+        item.carouselMetadata?.canvasId === canvasId
+    );
+  },
+
+  // Remove AI-generated images for a carousel
+  removeCarouselMediaItems: async (projectId: string, carouselId: string) => {
+    const carouselItems = get().getCarouselMediaItems(carouselId);
+    
+    // Clean up object URLs
+    carouselItems.forEach((item) => {
+      if (item.url) {
+        URL.revokeObjectURL(item.url);
+      }
+    });
+
+    // Remove from store
+    set((state) => ({
+      mediaItems: state.mediaItems.filter(
+        (item) =>
+          !item.isAIGenerated ||
+          item.carouselMetadata?.carouselId !== carouselId
+      ),
+    }));
+
+    // Remove from persistent storage
+    try {
+      await Promise.all(
+        carouselItems.map((item) =>
+          storageService.deleteMediaItem(projectId, item.id)
+        )
+      );
+    } catch (error) {
+      console.error("Failed to remove carousel media items from storage:", error);
+    }
   },
 }));

@@ -5,6 +5,7 @@ import { MediaView } from "./views/media";
 import { useMediaPanelStore, Tab } from "./store";
 import { TextView } from "./views/text";
 import { SoundsView } from "./views/sounds";
+import { CarouselView } from "./views/carousel";
 import { Separator } from "@/components/ui/separator";
 import { SettingsView } from "./views/settings";
 
@@ -45,6 +46,7 @@ export function MediaPanel() {
         Adjustment view coming soon...
       </div>
     ),
+    carousel: <CarouselView />,
     settings: <SettingsView />,
   };
 

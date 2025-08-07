@@ -44,7 +44,10 @@ export const auth = betterAuth({
   },
   baseURL: NEXT_PUBLIC_BETTER_AUTH_URL,
   appName: "OpenCut",
-  trustedOrigins: ["http://localhost:3000"],
+  trustedOrigins: process.env.NODE_ENV === 'production' ? [] : [
+    "http://localhost:3000",
+    "https://localhost:3000"
+  ],
 });
 
 export type Auth = typeof auth;

@@ -44,6 +44,10 @@ interface TimelineStore {
   history: TimelineTrack[][];
   redoStack: TimelineTrack[][];
 
+  // Multi-canvas timeline management
+  _canvasTimelines: Record<string, TimelineTrack[]>;
+  _currentCanvasId: string | null;
+
   // Always returns properly ordered tracks with main track ensured
   tracks: TimelineTrack[];
 
@@ -178,6 +182,14 @@ interface TimelineStore {
   loadProjectTimeline: (projectId: string) => Promise<void>;
   saveProjectTimeline: (projectId: string) => Promise<void>;
   clearTimeline: () => void;
+
+  // Multi-canvas timeline management
+  switchToCanvas: (canvasId: string) => void;
+  createCanvasTimeline: (canvasId: string) => void;
+  removeCanvasTimeline: (canvasId: string) => void;
+  saveCanvasTimeline: (canvasId: string, tracks: TimelineTrack[]) => void;
+  loadCanvasTimeline: (canvasId: string) => TimelineTrack[] | null;
+  getCurrentCanvasId: () => string | null;
   updateTextElement: (
     trackId: string,
     elementId: string,
@@ -254,6 +266,10 @@ export const useTimelineStore = create<TimelineStore>((set, get) => {
     redoStack: [],
     selectedElements: [],
     rippleEditingEnabled: false,
+
+    // Multi-canvas timeline management
+    _canvasTimelines: {},
+    _currentCanvasId: null,
 
     // Snapping settings defaults
     snappingEnabled: true,
@@ -1554,6 +1570,98 @@ export const useTimelineStore = create<TimelineStore>((set, get) => {
           "opacity" in item && item.opacity !== undefined ? item.opacity : 1,
       });
       return true;
+    },
+
+    // Multi-canvas timeline management
+    switchToCanvas: (canvasId) => {
+      const { _currentCanvasId, _canvasTimelines } = get();
+      
+      // Save current timeline state if we have an active canvas
+      if (_currentCanvasId) {
+        get().saveCanvasTimeline(_currentCanvasId, get()._tracks);
+      }
+      
+      // Load timeline for the new canvas
+      const canvasTracks = get().loadCanvasTimeline(canvasId);
+      if (canvasTracks) {
+        updateTracks(canvasTracks);
+      } else {
+        // Create new timeline for this canvas
+        get().createCanvasTimeline(canvasId);
+      }
+      
+      // Update current canvas ID
+      set({ _currentCanvasId: canvasId });
+      
+      // Clear selection when switching canvases
+      set({ selectedElements: [] });
+    },
+
+    createCanvasTimeline: (canvasId) => {
+      const { _canvasTimelines } = get();
+      
+      // Don't create if it already exists
+      if (_canvasTimelines[canvasId]) return;
+      
+      // Create new timeline with default tracks
+      const defaultTracks = ensureMainTrack([]);
+      
+      set({
+        _canvasTimelines: {
+          ..._canvasTimelines,
+          [canvasId]: defaultTracks,
+        },
+      });
+      
+      // If this is the first canvas or no current canvas is set, switch to it
+      if (!get()._currentCanvasId) {
+        updateTracks(defaultTracks);
+        set({ _currentCanvasId: canvasId });
+      }
+    },
+
+    removeCanvasTimeline: (canvasId) => {
+      const { _canvasTimelines, _currentCanvasId } = get();
+      
+      // Remove canvas timeline from storage
+      const updatedCanvasTimelines = { ..._canvasTimelines };
+      delete updatedCanvasTimelines[canvasId];
+      
+      set({ _canvasTimelines: updatedCanvasTimelines });
+      
+      // If we're removing the currently active canvas, switch to another one or clear
+      if (_currentCanvasId === canvasId) {
+        const remainingCanvasIds = Object.keys(updatedCanvasTimelines);
+        if (remainingCanvasIds.length > 0) {
+          // Switch to the first available canvas
+          get().switchToCanvas(remainingCanvasIds[0]);
+        } else {
+          // No more canvases, clear timeline and current canvas
+          const defaultTracks = ensureMainTrack([]);
+          updateTracks(defaultTracks);
+          set({ _currentCanvasId: null });
+        }
+      }
+    },
+
+    saveCanvasTimeline: (canvasId, tracks) => {
+      const { _canvasTimelines } = get();
+      
+      set({
+        _canvasTimelines: {
+          ..._canvasTimelines,
+          [canvasId]: JSON.parse(JSON.stringify(tracks)), // Deep copy
+        },
+      });
+    },
+
+    loadCanvasTimeline: (canvasId) => {
+      const { _canvasTimelines } = get();
+      return _canvasTimelines[canvasId] || null;
+    },
+
+    getCurrentCanvasId: () => {
+      return get()._currentCanvasId;
     },
   };
 });

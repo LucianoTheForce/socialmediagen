@@ -13,6 +13,7 @@ interface RunwareTask {
   guidanceScale?: number;
   seed?: number;
   style?: string;
+  negativePrompt?: string;
 }
 
 interface RunwareResponse {
@@ -140,12 +141,12 @@ export class RunwareService implements AIGenerationService {
 
   private enhancePromptForStyle(prompt: string, style: string): string {
     const styleEnhancements: Record<string, string> = {
-      'realistic': 'photorealistic, high quality, detailed, professional lighting',
-      'artistic': 'artistic, creative, vibrant colors, expressive, digital art',
-      'minimalist': 'minimalist, clean, simple, modern, elegant design',
-      'cinematic': 'cinematic lighting, dramatic, movie scene, professional photography',
-      'abstract': 'abstract art, geometric, modern, creative composition',
-      'vintage': 'vintage style, retro, nostalgic, aged, classic aesthetic',
+      'realistic': 'photorealistic, high quality, detailed, professional lighting, 8k resolution',
+      'artistic': 'artistic, creative, vibrant colors, expressive, digital art, masterpiece',
+      'minimalist': 'minimalist, clean, simple, modern, elegant design, white space',
+      'cinematic': 'cinematic lighting, dramatic, movie scene, professional photography, depth of field',
+      'abstract': 'abstract art, geometric, modern, creative composition, contemporary',
+      'vintage': 'vintage style, retro, nostalgic, aged, classic aesthetic, film grain',
     };
 
     const enhancement = styleEnhancements[style] || '';
@@ -154,7 +155,7 @@ export class RunwareService implements AIGenerationService {
 
   async generateImage(prompt: string, options: AIImageGenerationOptions): Promise<AIImageElement> {
     const dimensions = options.dimensions || this.getFormatDimensions(options.canvasFormat);
-    const enhancedPrompt = this.enhancePromptForStyle(prompt, options.style || 'realistic');
+    const enhancedPrompt = this.enhancePromptForCarousel(prompt, options.style || 'realistic', options.canvasFormat);
     
     const task: RunwareTask = {
       taskType: 'imageInference',
@@ -162,10 +163,11 @@ export class RunwareService implements AIGenerationService {
       prompt: enhancedPrompt,
       width: dimensions.width,
       height: dimensions.height,
-      model: options.model || 'civitai:4384@130072',
-      steps: 25,
-      guidanceScale: 7.5,
+      model: this.selectOptimalModel(options.style),
+      steps: this.getOptimalSteps(options.style),
+      guidanceScale: this.getOptimalGuidanceScale(options.style),
       seed: options.seed,
+      negativePrompt: this.getDefaultNegativePrompt(),
     };
 
     try {
@@ -235,6 +237,62 @@ export class RunwareService implements AIGenerationService {
       console.warn('Prompt enhancement failed, using original:', error);
       return prompt;
     }
+  }
+private enhancePromptForCarousel(prompt: string, style: string, canvasFormat: string): string {
+    const baseEnhancement = this.enhancePromptForStyle(prompt, style);
+    const formatEnhancement = this.getFormatSpecificEnhancement(canvasFormat);
+    const carouselOptimization = 'social media optimized, engaging, professional, clean composition, readable text space';
+    
+    return `${baseEnhancement}, ${formatEnhancement}, ${carouselOptimization}`;
+  }
+
+  private getFormatSpecificEnhancement(canvasFormat: string): string {
+    const formatEnhancements: Record<string, string> = {
+      'instagram-post': 'square format, Instagram optimized, mobile-friendly',
+      'instagram-story': 'vertical format, story optimized, full screen mobile',
+      'tiktok': 'vertical video format, TikTok style, youth-oriented',
+      'facebook-post': 'landscape format, Facebook optimized, social engagement',
+      'linkedin-post': 'professional, business-oriented, corporate style',
+    };
+
+    return formatEnhancements[canvasFormat] || 'social media optimized';
+  }
+
+  private selectOptimalModel(style?: string): string {
+    const modelMap: Record<string, string> = {
+      'realistic': 'civitai:4384@130072', // Realistic Vision
+      'artistic': 'civitai:4201@128713', // DreamShaper
+      'cinematic': 'civitai:43331@132760', // Cinematic
+      'minimalist': 'civitai:4384@130072', // Realistic Vision works well for clean designs
+    };
+
+    return modelMap[style || 'realistic'] || 'civitai:4384@130072';
+  }
+
+  private getOptimalSteps(style?: string): number {
+    const stepsMap: Record<string, number> = {
+      'realistic': 30,
+      'artistic': 25,
+      'minimalist': 20,
+      'cinematic': 35,
+    };
+
+    return stepsMap[style || 'realistic'] || 25;
+  }
+
+  private getOptimalGuidanceScale(style?: string): number {
+    const guidanceMap: Record<string, number> = {
+      'realistic': 7.5,
+      'artistic': 8.0,
+      'minimalist': 6.5,
+      'cinematic': 8.5,
+    };
+
+    return guidanceMap[style || 'realistic'] || 7.5;
+  }
+
+  private getDefaultNegativePrompt(): string {
+    return 'blurry, low quality, distorted, deformed, watermark, text overlay, signature, amateur, ugly, bad anatomy, low resolution, pixelated';
   }
 
   disconnect(): void {

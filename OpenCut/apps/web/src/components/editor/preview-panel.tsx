@@ -16,6 +16,9 @@ import { EditableTimecode } from "@/components/ui/editable-timecode";
 import { FONT_CLASS_MAP } from "@/lib/font-config";
 import { useProjectStore } from "@/stores/project-store";
 import { TextElementDragState } from "@/types/editor";
+import { CanvasNavigation } from "@/components/editor/canvas-navigation";
+import { useCarouselStore } from "@/stores/carousel";
+import { isInstagramCarouselProject } from "@/types/ai-timeline";
 
 interface ActiveElement {
   element: TimelineElement;
@@ -36,6 +39,7 @@ export function PreviewPanel() {
   });
   const [isExpanded, setIsExpanded] = useState(false);
   const { activeProject } = useProjectStore();
+  const { currentProject } = useCarouselStore();
   const [dragState, setDragState] = useState<TextElementDragState>({
     isDragging: false,
     elementId: null,
@@ -503,6 +507,11 @@ export function PreviewPanel() {
                     Add a video or image to use blur background
                   </div>
                 )}
+              
+              {/* Canvas Navigation for Instagram Carousel Projects */}
+              {currentProject && isInstagramCarouselProject(currentProject) && (
+                <CanvasNavigation position="bottom-right" />
+              )}
             </div>
           ) : null}
 
@@ -524,6 +533,7 @@ export function PreviewPanel() {
         <FullscreenPreview
           previewDimensions={previewDimensions}
           activeProject={activeProject}
+          currentProject={currentProject}
           renderBlurBackground={renderBlurBackground}
           activeElements={activeElements}
           renderElement={renderElement}
@@ -710,6 +720,7 @@ function FullscreenToolbar({
 function FullscreenPreview({
   previewDimensions,
   activeProject,
+  currentProject,
   renderBlurBackground,
   activeElements,
   renderElement,
@@ -723,6 +734,7 @@ function FullscreenPreview({
 }: {
   previewDimensions: { width: number; height: number };
   activeProject: any;
+  currentProject: any;
   renderBlurBackground: () => React.ReactNode;
   activeElements: ActiveElement[];
   renderElement: (elementData: ActiveElement, index: number) => React.ReactNode;
@@ -765,6 +777,11 @@ function FullscreenPreview({
                 Add a video or image to use blur background
               </div>
             )}
+          
+          {/* Canvas Navigation for Instagram Carousel Projects */}
+          {currentProject && isInstagramCarouselProject(currentProject) && (
+            <CanvasNavigation position="bottom-right" />
+          )}
         </div>
       </div>
       <div className="p-4 bg-background">
