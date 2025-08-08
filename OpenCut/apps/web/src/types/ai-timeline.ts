@@ -468,17 +468,165 @@ export const createCarouselCanvas = (
   isActive: boolean = false
 ): InstagramCarouselCanvas => {
   const canvasId = `canvas_${slideNumber}_${Date.now()}`;
+  const now = new Date();
+  
+  // Create timeline elements from AI-generated slide data
+  const elements: TimelineElement[] = [];
+  
+  // 1. Background Image Element (if available)
+  if (slideData.backgroundImage) {
+    const backgroundElement: AIImageElement = {
+      id: `bg_${canvasId}`,
+      type: 'ai-image',
+      name: `Background - Slide ${slideNumber}`,
+      duration: 5000,
+      startTime: 0,
+      trimStart: 0,
+      trimEnd: 5000,
+      imageUrl: slideData.backgroundImage,
+      dimensions: {
+        width: 1080,
+        height: 1080
+      },
+      style: 'background',
+      aspectRatio: 1,
+      canvasFormat: 'instagram-post',
+      isRegeneratable: true,
+      generationHistory: [],
+      aiMetadata: {
+        provider: 'runware',
+        model: 'stable-diffusion',
+        prompt: slideData.backgroundPrompt || `Background for ${slideData.title}`,
+        generatedAt: now,
+        generationTime: 3000,
+        parameters: { style: 'realistic', dimensions: '1080x1080' },
+        cost: 0.04
+      }
+    };
+    elements.push(backgroundElement);
+  }
+  
+  // 2. Title Text Element
+  if (slideData.title) {
+    const titleElement: AITextElement = {
+      id: `title_${canvasId}`,
+      type: 'ai-text',
+      name: `Title - Slide ${slideNumber}`,
+      duration: 5000,
+      startTime: 0,
+      trimStart: 0,
+      trimEnd: 5000,
+      content: slideData.title,
+      fontSize: 36,
+      fontFamily: 'Arial, sans-serif',
+      fontWeight: 'bold',
+      color: '#000000',
+      backgroundColor: 'rgba(255, 255, 255, 0.9)',
+      position: {
+        x: 540, // Center horizontally
+        y: 200  // Upper third
+      },
+      alignment: 'center',
+      canvasFormat: 'instagram-post',
+      isRegeneratable: true,
+      generationHistory: [],
+      aiMetadata: {
+        provider: 'openai',
+        model: 'gpt-4',
+        prompt: `Generate engaging title for: ${slideData.title}`,
+        generatedAt: now,
+        generationTime: 1500,
+        parameters: { maxLength: 100, style: 'engaging' },
+        cost: 0.002
+      }
+    };
+    elements.push(titleElement);
+  }
+  
+  // 3. Content Text Element
+  if (slideData.content) {
+    const contentElement: AITextElement = {
+      id: `content_${canvasId}`,
+      type: 'ai-text',
+      name: `Content - Slide ${slideNumber}`,
+      duration: 5000,
+      startTime: 0,
+      trimStart: 0,
+      trimEnd: 5000,
+      content: slideData.content,
+      fontSize: 20,
+      fontFamily: 'Arial, sans-serif',
+      fontWeight: 'normal',
+      color: '#333333',
+      backgroundColor: 'rgba(255, 255, 255, 0.8)',
+      position: {
+        x: 540, // Center horizontally
+        y: 540  // Center vertically
+      },
+      alignment: 'center',
+      canvasFormat: 'instagram-post',
+      isRegeneratable: true,
+      generationHistory: [],
+      aiMetadata: {
+        provider: 'openai',
+        model: 'gpt-4',
+        prompt: `Generate content for slide: ${slideData.content}`,
+        generatedAt: now,
+        generationTime: 2000,
+        parameters: { maxLength: 500, style: 'engaging' },
+        cost: 0.003
+      }
+    };
+    elements.push(contentElement);
+  }
+  
+  // 4. CTA Element (if available)
+  if (slideData.cta) {
+    const ctaElement: AITextElement = {
+      id: `cta_${canvasId}`,
+      type: 'ai-text',
+      name: `CTA - Slide ${slideNumber}`,
+      duration: 5000,
+      startTime: 0,
+      trimStart: 0,
+      trimEnd: 5000,
+      content: slideData.cta,
+      fontSize: 24,
+      fontFamily: 'Arial, sans-serif',
+      fontWeight: 'bold',
+      color: '#ffffff',
+      backgroundColor: '#007bff',
+      position: {
+        x: 540, // Center horizontally
+        y: 880  // Bottom area
+      },
+      alignment: 'center',
+      canvasFormat: 'instagram-post',
+      isRegeneratable: true,
+      generationHistory: [],
+      aiMetadata: {
+        provider: 'openai',
+        model: 'gpt-4',
+        prompt: `Generate call-to-action: ${slideData.cta}`,
+        generatedAt: now,
+        generationTime: 1000,
+        parameters: { maxLength: 50, style: 'compelling' },
+        cost: 0.001
+      }
+    };
+    elements.push(ctaElement);
+  }
   
   return {
     id: canvasId,
     name: `Slide ${slideNumber}: ${slideData.title}`,
     format: getCanvasFormatById('instagram-post')!,
-    elements: [],
-    duration: 5000, // 5 seconds default
+    elements, // ✅ Now populated with AI-generated timeline elements!
+    duration: 5000,
     backgroundColor: '#ffffff',
-    backgroundImage: slideData.backgroundImage?.url,
+    backgroundImage: slideData.backgroundImage,
     isActive,
-    thumbnailUrl: slideData.backgroundImage?.url,
+    thumbnailUrl: slideData.backgroundImage,
     slideMetadata: {
       slideNumber,
       title: slideData.title,
@@ -487,19 +635,19 @@ export const createCarouselCanvas = (
       cta: slideData.cta,
       backgroundPrompt: slideData.backgroundPrompt,
       aiGeneratedBackground: slideData.backgroundImage ? {
-        imageId: slideData.backgroundImage.id,
-        imageUrl: slideData.backgroundImage.url,
+        imageId: slideData.backgroundImage.id || `bg_${canvasId}`,
+        imageUrl: slideData.backgroundImage,
         prompt: slideData.backgroundPrompt,
-        generatedAt: new Date(),
-        cost: slideData.backgroundImage.metadata?.cost || 0.05
+        generatedAt: now,
+        cost: 0.04
       } : undefined,
       textElements: [],
-      lastModified: new Date(),
+      lastModified: now,
       isGenerated: true
     },
     exportSettings: {
       ...DEFAULT_EXPORT_SETTINGS,
-      format: 'jpg' // Instagram posts are typically images
+      format: 'jpg'
     }
   };
 };

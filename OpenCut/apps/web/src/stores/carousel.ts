@@ -15,6 +15,7 @@ import {
   isInstagramCarouselProject
 } from '../types/ai-timeline';
 import { useMediaStore } from './media-store';
+import { useTimelineStore } from './timeline-store';
 
 // Generation Progress State
 export interface GenerationProgress {
@@ -350,7 +351,11 @@ export const useCarouselStore = create<CarouselStore>()(
 
         // Generation Management Actions
         startGeneration: async (options) => {
-          const { currentProject } = get();
+          const { currentProject, generationProgress } = get();
+          // Prevent duplicate concurrent generations
+          if (generationProgress.isGenerating) {
+            return;
+          }
           
           set(
             (state) => ({
@@ -380,7 +385,13 @@ export const useCarouselStore = create<CarouselStore>()(
               throw new Error(`Generation failed: ${response.statusText}`);
             }
 
-            const result = await response.json();
+            const payload = await response.json();
+            // Accept both shapes: { success, data } and plain result
+            const result = (payload && typeof payload === 'object' && 'data' in payload) ? (payload as any).data : payload;
+
+            if (!result || !Array.isArray(result.slides)) {
+              throw new Error('Invalid API response: slides missing');
+            }
             
             // Create project from API result
             const newProject = createInstagramCarouselProject(
@@ -399,6 +410,66 @@ export const useCarouselStore = create<CarouselStore>()(
             // Update state with new project
             get().setCurrentProject(newProject);
             get().addToHistory(newProject);
+
+            // 🎯 Auto-populate timeline contexts with AI-generated elements
+            const timelineStore = useTimelineStore.getState();
+            newProject.canvases.forEach((canvas) => {
+              // Create timeline context for this canvas
+              timelineStore.createCanvasTimeline(canvas.id);
+              
+              // Populate timeline with AI-generated elements from canvas
+              if (canvas.elements && canvas.elements.length > 0) {
+                timelineStore.switchToCanvas(canvas.id);
+                
+                // Add each AI-generated element to the appropriate timeline track
+                canvas.elements.forEach((element) => {
+                  // Convert AI elements to timeline format
+                  if (element.type === 'ai-image') {
+                    // For AI images, we need to add them as media elements
+                    // Note: This requires the image to be available in the media store
+                    console.log(`Adding AI image element to timeline: ${element.id}`);
+                    // TODO: Add proper media item creation for AI images when media store integration is ready
+                  } else if (element.type === 'ai-text') {
+                    // For AI text, add as text element - cast to get the specific text properties
+                    const aiTextElement = element as any; // Type assertion for AI text element
+                    
+                    // Find or create text track
+                    const trackId = timelineStore.findOrCreateTrack('text');
+                    
+                    timelineStore.addElementToTrack(trackId, {
+                      type: 'text',
+                      name: aiTextElement.aiMetadata?.prompt || 'AI Generated Text',
+                      content: aiTextElement.content || 'Generated text',
+                      duration: 3000, // 3 seconds in milliseconds
+                      startTime: 0,
+                      trimStart: 0,
+                      trimEnd: 0,
+                      fontSize: aiTextElement.fontSize || 48,
+                      fontFamily: aiTextElement.fontFamily || 'Arial',
+                      color: aiTextElement.color || '#ffffff',
+                      backgroundColor: aiTextElement.backgroundColor || 'transparent',
+                      textAlign: aiTextElement.alignment || 'center',
+                      fontWeight: aiTextElement.fontWeight || 'normal',
+                      fontStyle: 'normal',
+                      textDecoration: 'none',
+                      x: aiTextElement.position?.x || 0,
+                      y: aiTextElement.position?.y || 0,
+                      rotation: 0,
+                      opacity: 1,
+                    });
+                  }
+                });
+                
+                console.log(`✅ Timeline populated for canvas ${canvas.id} with ${canvas.elements.length} AI elements`);
+              }
+            });
+            
+            // Switch to the first (active) canvas
+            const activeCanvas = newProject.canvases.find(c => c.isActive) || newProject.canvases[0];
+            if (activeCanvas) {
+              timelineStore.switchToCanvas(activeCanvas.id);
+              console.log(`✅ Active canvas timeline: ${activeCanvas.id}`);
+            }
 
             // Mark generation as complete
             set(

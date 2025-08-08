@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { env } from "@/env";
-import { baseRateLimit } from "@/lib/rate-limit";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 const searchParamsSchema = z.object({
   q: z.string().max(500, "Query too long").optional(),
@@ -91,7 +91,7 @@ const apiResponseSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const ip = request.headers.get("x-forwarded-for") ?? "anonymous";
-    const { success } = await baseRateLimit.limit(ip);
+    const { success } = await checkRateLimit(ip);
 
     if (!success) {
       return NextResponse.json({ error: "Too many requests" }, { status: 429 });

@@ -46,23 +46,23 @@ export async function POST(request: NextRequest) {
       
       // Create structured prompt for OpenAI using the correct method
       const structuredPrompt = CarouselPromptService.generateStructuredPrompt({
-        topic: prompt,
-        slideCount: canvasCount,
-        backgroundStrategy,
+      topic: prompt,
+      slideCount: canvasCount,
+      backgroundStrategy,
         tone: 'engaging',
         targetAudience: 'general',
         style: 'modern',
-        contentType
+      contentType
       });
 
       console.log('[Carousel API] Calling OpenAI for slide generation...');
       const aiTextElement = await openaiService.generateText(structuredPrompt, {
         platform: 'INSTAGRAM' as any,
-        maxLength: 2000,
+      maxLength: 2000,
         variations: 1,
         style: 'engaging',
         tone: 'FRIENDLY' as any,
-        includeEmojis: true,
+      includeEmojis: true,
         includeHashtags: false,
         canvasFormat: 'instagram-post'
       });
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
         } else {
           throw new Error('Invalid response structure');
         }
-      } catch (parseError) {
+    } catch (parseError) {
         console.warn('[Carousel API] Failed to parse OpenAI JSON response, creating fallback slides');
         throw parseError;
       }
@@ -198,7 +198,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: false,
       error: 'Carousel generation failed',
-      details: error instanceof Error ? error.message : String(error),
+        details: error instanceof Error ? error.message : String(error),
       errorTime: Math.round(errorTime),
       timestamp: new Date().toISOString()
     }, { status: 500 });
@@ -210,7 +210,7 @@ export async function GET() {
     service: 'OpenCut Carousel Generation API',
     version: '2.0.0',
     status: 'operational',
-    features: [
+      features: [
       'AI-powered slide content generation',
       'Intelligent background image creation',
       'Multiple background strategies (unique/thematic)',

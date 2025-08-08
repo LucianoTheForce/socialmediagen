@@ -117,15 +117,22 @@ export function CanvasNavigation({
   };
 
   return (
-    <div 
+    <div
       className={cn(
-        "absolute z-10 flex items-center gap-2 p-2 bg-black/70 backdrop-blur-sm rounded-lg border border-white/10",
+        "absolute z-10 bg-black/80 backdrop-blur-sm rounded-xl border border-white/10 shadow-lg",
         positionClasses[position],
-        className
+        className,
+        // Make responsive based on canvas count
+        canvases.length > 6 ? "max-w-[90vw] overflow-x-auto" : "",
+        "flex items-center gap-2 p-2"
       )}
     >
-      {/* Canvas Thumbnails */}
-      <div className="flex items-center gap-1.5">
+      {/* Scrollable Canvas Container */}
+      <div className={cn(
+        "flex items-center gap-1.5",
+        canvases.length > 6 ? "overflow-x-auto scrollbar-thin" : "",
+        "min-w-0 scroll-smooth" // Allow shrinking and smooth scrolling
+      )}>
         {canvases.map((canvas, index) => (
           <CanvasThumbnail
             key={canvas.id}
@@ -139,30 +146,33 @@ export function CanvasNavigation({
             onRegenerate={(e) => handleRegenerateCanvas(canvas.id, e)}
           />
         ))}
+        
+        {/* Add Canvas Button - Inside scrollable container */}
+        {showAddButton && canAddMore && (
+          <Button
+            variant="outline"
+            size="sm"
+            className={cn(
+              "h-auto p-1 text-white/70 hover:text-white hover:bg-white/20 border-2 border-dashed border-white/30 hover:border-white/50 transition-all shrink-0",
+              "animate-pulse hover:animate-none" // Subtle animation to make it more visible
+            )}
+            style={{
+              width: thumbnailDimensions.width,
+              height: thumbnailDimensions.height
+            }}
+            onClick={handleAddCanvas}
+            title="Add new canvas"
+          >
+            <Plus className="w-4 h-4" />
+          </Button>
+        )}
       </div>
 
-      {/* Add Canvas Button */}
-      {showAddButton && canAddMore && (
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-auto p-1 text-white/70 hover:text-white hover:bg-white/20 border-2 border-dashed border-white/30 hover:border-white/50 transition-all"
-          style={{
-            width: thumbnailDimensions.width,
-            height: thumbnailDimensions.height
-          }}
-          onClick={handleAddCanvas}
-          title="Add new canvas"
-        >
-          <Plus className="w-4 h-4" />
-        </Button>
-      )}
-
-      {/* Navigation Controls */}
-      <div className="flex items-center gap-1 ml-1 pl-1 border-l border-white/20">
-        <Badge 
-          variant="secondary" 
-          className="text-xs bg-white/20 text-white border-white/30"
+      {/* Navigation Controls - Always visible */}
+      <div className="flex items-center gap-1 ml-1 pl-1 border-l border-white/20 shrink-0">
+        <Badge
+          variant="secondary"
+          className="text-xs bg-white/20 text-white border-white/30 whitespace-nowrap"
         >
           {canvases.length}/{maxCanvasCount}
         </Badge>
