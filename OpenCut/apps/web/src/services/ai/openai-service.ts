@@ -133,13 +133,16 @@ Return as a clean list separated by spaces.`
 };
 
 export class OpenAIService implements AIGenerationService {
-  private client: OpenAI;
+  private client: OpenAI | null;
   private baseModel = 'gpt-4o-mini'; // Cost-effective for text generation
 
   constructor() {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      throw new Error('OpenAI API key not found in environment variables');
+      // Defer failure to call sites so routes can provide fallbacks
+      console.warn('OPENAI_API_KEY not found. Text generation will use fallback.');
+      this.client = null;
+      return;
     }
 
     this.client = new OpenAI({
@@ -155,6 +158,9 @@ export class OpenAIService implements AIGenerationService {
     const startTime = Date.now();
     
     try {
+      if (!this.client) {
+        throw new Error('OpenAI API key not configured');
+      }
       // Build system prompt based on platform and context
       const systemPrompt = this.buildSystemPrompt(options);
       
@@ -247,6 +253,9 @@ export class OpenAIService implements AIGenerationService {
 
   async enhancePrompt(prompt: string): Promise<string> {
     try {
+      if (!this.client) {
+        throw new Error('OpenAI API key not configured');
+      }
       const response = await this.client.chat.completions.create({
         model: this.baseModel,
         messages: [
@@ -371,6 +380,9 @@ Always stay within character limits and follow platform best practices.`;
         brandedHashtag: options.businessContext?.brandedHashtag || ''
       });
 
+      if (!this.client) {
+        throw new Error('OpenAI API key not configured');
+      }
       const response = await this.client.chat.completions.create({
         model: this.baseModel,
         messages: [

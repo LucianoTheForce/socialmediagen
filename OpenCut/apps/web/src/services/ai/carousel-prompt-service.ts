@@ -425,3 +425,5 @@ Create exactly ${slideCount} slides following this structure. Ensure each slide 
     return [...baseRules, ...(typeSpecificRules[contentType] || typeSpecificRules.educational)];
   }
 }
+
+export default CarouselPromptService;
