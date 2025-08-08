@@ -55,6 +55,8 @@ export function CarouselView() {
   const [prompt, setPrompt] = useState("");
   const [canvasCount, setCanvasCount] = useState("3");
   const [backgroundStrategy, setBackgroundStrategy] = useState<BackgroundStrategy>("unique");
+  const [imageProvider, setImageProvider] = useState<"runware">("runware");
+  const [layoutPreset, setLayoutPreset] = useState<string>("jitter-mobile-showreel");
   const [isCanvasCountOverridden, setIsCanvasCountOverridden] = useState(false);
   
   // Use real carousel store instead of local state
@@ -98,6 +100,7 @@ export function CarouselView() {
       prompt: prompt.trim(),
       canvasCount: parseInt(canvasCount, 10),
       backgroundStrategy: backgroundStrategy as "unique" | "thematic",
+      imageProvider: imageProvider,
       styleOptions: {
         tone: 'friendly',
         targetAudience: 'Instagram users',
@@ -113,7 +116,8 @@ export function CarouselView() {
         style: 'engaging and modern',
         quality: 'high',
         consistency: backgroundStrategy === 'thematic'
-      }
+      },
+      layoutPreset
     };
 
     console.log("Starting carousel generation with options:", options);
@@ -185,6 +189,33 @@ export function CarouselView() {
         </Select>
       </div>
 
+      {/* Image Provider Selector */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium">Image Generation Provider</Label>
+        <RadioGroup
+          value={imageProvider}
+          onValueChange={(value) => setImageProvider(value as "runware")}
+          className="grid grid-cols-1 gap-4"
+          disabled={generationProgress.isGenerating}
+        >
+          <div className="flex items-center space-x-3 rounded-md border p-3 hover:bg-accent/50 transition-colors">
+            <RadioGroupItem value="runware" id="runware" />
+            <div className="flex-1">
+              <label
+                htmlFor="runware"
+                className="cursor-pointer flex items-center gap-2 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                <Wand2 className="h-4 w-4" />
+                Runware AI
+              </label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Fast, high-quality image generation optimized for social media
+              </p>
+            </div>
+          </div>
+        </RadioGroup>
+      </div>
+
       {/* Background Strategy */}
       <div className="space-y-3">
         <Label className="text-sm font-medium">Background Strategy</Label>
@@ -225,6 +256,25 @@ export function CarouselView() {
             </div>
           </div>
         </RadioGroup>
+      </div>
+
+      {/* Layout Preset */}
+      <div className="space-y-3">
+        <Label className="text-sm font-medium">Layout Preset</Label>
+        <Select
+          value={layoutPreset}
+          onValueChange={setLayoutPreset}
+          disabled={generationProgress.isGenerating}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Choose a layout preset" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="jitter-mobile-showreel">Jitter Mobile Showreel</SelectItem>
+            <SelectItem value="minimal-clean">Minimal Clean</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">Applies corner rounding and pagination similar to Jitter mobile showreel.</p>
       </div>
 
       {/* Generation Progress */}

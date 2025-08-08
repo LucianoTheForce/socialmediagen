@@ -7,13 +7,13 @@ import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 
 export const metadata: Metadata = {
-  title: "Terms of Service - OpenCut",
+  title: "Terms of Service - genID powered by The Force",
   description:
-    "OpenCut's Terms of Service. Fair, transparent terms for our free and open-source video editor.",
+    "genID's Terms of Service. Fair, transparent terms for our AI-powered social media content generator.",
   openGraph: {
-    title: "Terms of Service - OpenCut",
+    title: "Terms of Service - genID powered by The Force",
     description:
-      "OpenCut's Terms of Service. Fair, transparent terms for our free and open-source video editor.",
+      "genID's Terms of Service. Fair, transparent terms for our AI-powered social media content generator.",
     type: "website",
   },
 };
@@ -31,7 +31,7 @@ export default function TermsPage() {
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-10">
               <Link
-                href="https://github.com/OpenCut-app/OpenCut"
+                href="https://github.com/genID-app/genID"
                 target="_blank"
               >
                 <Badge variant="secondary" className="gap-2 mb-6">
@@ -43,25 +43,25 @@ export default function TermsPage() {
                 Terms of Service
               </h1>
               <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-                Fair and transparent terms for our free, open-source video
-                editor.
+                Fair and transparent terms for our AI-powered social media
+                content generator.
               </p>
             </div>
             <Card className="bg-background/80 backdrop-blur-xs border-2 border-muted/30">
               <CardContent className="p-8 text-base leading-relaxed space-y-8">
                 <section>
                   <h2 className="text-2xl font-semibold mb-4">
-                    Welcome to OpenCut
+                    Welcome to genID
                   </h2>
                   <p className="mb-4">
-                    OpenCut is a free, open-source video editor that runs in
+                    genID is an AI-powered social media content generator that runs in
                     your browser. By using our service, you agree to these
                     terms. We've designed these terms to be fair and protect
                     both you and our project.
                   </p>
                   <p>
                     <strong>Key principle:</strong> Your content stays on your
-                    device. We never claim ownership of your videos or projects.
+                    device. We never claim ownership of your content or projects.
                   </p>
                 </section>
 
@@ -70,15 +70,15 @@ export default function TermsPage() {
                     Your Content, Your Rights
                   </h2>
                   <p className="mb-4">
-                    <strong>You own everything you create.</strong> OpenCut
-                    processes your videos locally on your device, so we never
+                    <strong>You own everything you create.</strong> genID
+                    processes your content locally on your device, so we never
                     have access to your content. We make no claims to ownership,
-                    licensing, or rights over your videos, projects, or any
-                    content you create using OpenCut.
+                    licensing, or rights over your content, projects, or any
+                    material you create using genID.
                   </p>
                   <ul className="list-disc pl-6 mb-4 space-y-2">
                     <li>
-                      Your videos remain completely private and under your
+                      Your content remains completely private and under your
                       control
                     </li>
                     <li>
@@ -89,32 +89,32 @@ export default function TermsPage() {
                       You can export and use your content however you choose
                     </li>
                     <li>
-                      No watermarks, no licensing restrictions from OpenCut
+                      No watermarks, no licensing restrictions from genID
                     </li>
                   </ul>
                 </section>
 
                 <section>
                   <h2 className="text-2xl font-semibold mb-4">
-                    How You Can Use OpenCut
+                    How You Can Use genID
                   </h2>
                   <p className="mb-4">
-                    OpenCut is free for personal and commercial use. You can:
+                    genID is free for personal and commercial use. You can:
                   </p>
                   <ul className="list-disc pl-6 mb-4 space-y-2">
                     <li>
-                      Create videos for personal, educational, or commercial
+                      Create content for personal, educational, or commercial
                       purposes
                     </li>
-                    <li>Use OpenCut for client work and paid projects</li>
-                    <li>Share and distribute videos created with OpenCut</li>
+                    <li>Use genID for client work and paid projects</li>
+                    <li>Share and distribute content created with genID</li>
                     <li>
-                      Modify and distribute the OpenCut software (under MIT
+                      Modify and distribute the genID software (under open source
                       license)
                     </li>
                   </ul>
                   <p>
-                    <strong>What we ask:</strong> Don't use OpenCut for illegal
+                    <strong>What we ask:</strong> Don't use genID for illegal
                     activities, harassment, or creating harmful content. Be
                     respectful of others and follow applicable laws.
                   </p>
@@ -160,7 +160,7 @@ export default function TermsPage() {
                   <p>
                     View our source code and license on{" "}
                     <a
-                      href="https://github.com/OpenCut-app/OpenCut"
+                      href="https://github.com/genID-app/genID"
                       target="_blank"
                       rel="noopener"
                       className="text-primary hover:underline"
@@ -219,8 +219,8 @@ export default function TermsPage() {
                   </ul>
                   <p>
                     Since your content stays on your device, we have no way to
-                    recover lost projects. Consider exporting important videos
-                    when finished editing.
+                    recover lost projects. Consider exporting important content
+                    when finished creating.
                   </p>
                 </section>
 
@@ -228,7 +228,7 @@ export default function TermsPage() {
                   <h2 className="text-2xl font-semibold mb-4">
                     Service Changes
                   </h2>
-                  <p className="mb-4">We may update OpenCut and these terms:</p>
+                  <p className="mb-4">We may update genID and these terms:</p>
                   <ul className="list-disc pl-6 mb-4 space-y-2">
                     <li>
                       We'll notify you of significant changes to these terms
@@ -247,13 +247,13 @@ export default function TermsPage() {
                 <section>
                   <h2 className="text-2xl font-semibold mb-4">Termination</h2>
                   <p className="mb-4">
-                    You can stop using OpenCut at any time:
+                    You can stop using genID at any time:
                   </p>
                   <ul className="list-disc pl-6 mb-4 space-y-2">
                     <li>Delete your account through your profile settings</li>
                     <li>Clear your browser data to remove local projects</li>
                     <li>
-                      Your content remains yours even if you stop using OpenCut
+                      Your content remains yours even if you stop using genID
                     </li>
                     <li>
                       We may suspend accounts for violations of these terms
@@ -271,7 +271,7 @@ export default function TermsPage() {
                   <p className="mb-4">
                     Contact us through our{" "}
                     <a
-                      href="https://github.com/OpenCut-app/OpenCut/issues"
+                      href="https://github.com/genID-app/genID/issues"
                       target="_blank"
                       rel="noopener"
                       className="text-primary hover:underline"
@@ -280,14 +280,14 @@ export default function TermsPage() {
                     </a>
                     , email us at{" "}
                     <a
-                      href="mailto:oss@opencut.app"
+                      href="mailto:hello@genid.app"
                       className="text-primary hover:underline"
                     >
-                      oss@opencut.app
+                      hello@genid.app
                     </a>
                     , or reach out on{" "}
                     <a
-                      href="https://x.com/opencutapp"
+                      href="https://x.com/genidapp"
                       target="_blank"
                       rel="noopener"
                       className="text-primary hover:underline"

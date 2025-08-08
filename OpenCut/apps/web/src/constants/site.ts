@@ -1,9 +1,9 @@
-export const SITE_URL = "https://opencut.app";
+export const SITE_URL = "https://genid.app";
 
 export const SITE_INFO = {
-  title: "OpenCut",
+  title: "genID powered by The Force",
   description:
-    "A simple but powerful video editor that gets the job done. In your browser.",
+    "AI-powered social media content generator that creates stunning posts with intelligent design.",
   url: SITE_URL,
   openGraphImage: "/open-graph/default.jpg",
   twitterImage: "/open-graph/default.jpg",
@@ -14,20 +14,20 @@ export const EXTERNAL_TOOLS = [
   {
     name: "Marble",
     description:
-      "Modern headless CMS for content management and the blog for OpenCut",
-    url: "https://marblecms.com?utm_source=opencut",
+      "Modern headless CMS for content management and the blog for genID",
+    url: "https://marblecms.com?utm_source=genid",
     icon: "MarbleIcon" as const,
   },
   {
     name: "Vercel",
-    description: "Platform where we deploy and host OpenCut",
-    url: "https://vercel.com?utm_source=opencut",
+    description: "Platform where we deploy and host genID",
+    url: "https://vercel.com?utm_source=genid",
     icon: "VercelIcon" as const,
   },
   {
     name: "Databuddy",
-    description: "GDPR compliant analytics and user insights for OpenCut",
-    url: "https://databuddy.cc?utm_source=opencut",
+    description: "GDPR compliant analytics and user insights for genID",
+    url: "https://databuddy.cc?utm_source=genid",
     icon: "DataBuddyIcon" as const,
   },
 ];

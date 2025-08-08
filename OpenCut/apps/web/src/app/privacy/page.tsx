@@ -7,13 +7,13 @@ import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy - OpenCut",
+  title: "Privacy Policy - genID powered by The Force",
   description:
-    "Learn how OpenCut handles your data and privacy. Our commitment to protecting your information while you edit videos.",
+    "Learn how genID handles your data and privacy. Our commitment to protecting your information while you create AI-powered content.",
   openGraph: {
-    title: "Privacy Policy - OpenCut",
+    title: "Privacy Policy - genID powered by The Force",
     description:
-      "Learn how OpenCut handles your data and privacy. Our commitment to protecting your information while you edit videos.",
+      "Learn how genID handles your data and privacy. Our commitment to protecting your information while you create AI-powered content.",
     type: "website",
   },
 };
@@ -31,7 +31,7 @@ export default function PrivacyPage() {
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-10">
               <Link
-                href="https://github.com/OpenCut-app/OpenCut"
+                href="https://github.com/genID-app/genID"
                 target="_blank"
               >
                 <Badge variant="secondary" className="gap-2 mb-6">
@@ -51,19 +51,19 @@ export default function PrivacyPage() {
               <CardContent className="p-8 text-base leading-relaxed space-y-8">
                 <section>
                   <h2 className="text-2xl font-semibold mb-4">
-                    Your Videos Stay Private
+                    Your Content Stays Private
                   </h2>
                   <p className="mb-4">
                     <strong>
-                      OpenCut processes all videos locally on your device.
+                      genID processes all content locally on your device.
                     </strong>{" "}
-                    We never upload, store, or have access to your video files.
-                    Your content remains completely private and under your
+                    We never upload, store, or have access to your media files or generated content.
+                    Your creations remain completely private and under your
                     control at all times.
                   </p>
                   <p>
-                    All video editing, rendering, and processing happens in your
-                    browser using WebAssembly and local storage. No video data
+                    All content generation, editing, rendering, and processing happens in your
+                    browser using local storage. No media data
                     is transmitted to our servers.
                   </p>
                 </section>

@@ -36,12 +36,13 @@ export function Footer() {
           {/* Brand Section */}
           <div className="md:col-span-1 max-w-sm">
             <div className="flex justify-start items-center gap-2 mb-4">
-              <Image src="/logo.svg" alt="OpenCut" width={24} height={24} />
-              <span className="font-bold text-lg">OpenCut</span>
+              <Image src="/logo.svg" alt="genID" width={24} height={24} />
+              <span className="font-bold text-lg">genID</span>
+              <span className="text-sm text-muted-foreground">powered by The Force</span>
             </div>
             <p className="text-sm md:text-left text-muted-foreground mb-5">
-              The open source video editor that gets the job done. Simple,
-              powerful, and works on any platform.
+              AI-powered social media content generator that creates engaging
+              carousels and videos. Simple, powerful, and works on any platform.
             </p>
             <div className="flex justify-start gap-3">
               <Link
@@ -132,7 +133,7 @@ export function Footer() {
         {/* Bottom Section */}
         <div className="pt-2 flex flex-col md:flex-row justify-between items-start gap-4">
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
-            <span>© 2025 OpenCut, All Rights Reserved</span>
+            <span>© 2025 genID powered by The Force, All Rights Reserved</span>
           </div>
         </div>
       </div>

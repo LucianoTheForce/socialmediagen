@@ -33,7 +33,7 @@ export function Hero() {
           className="mb-4 flex justify-center"
         >
           <SponsorButton
-            href="https://vercel.com/home?utm_source=opencut"
+            href="https://vercel.com/home?utm_source=genid"
             logo={VercelIcon}
             companyName="Vercel"
           />
@@ -44,8 +44,8 @@ export function Hero() {
           transition={{ delay: 0.2, duration: 0.8 }}
           className="inline-block font-bold tracking-tighter text-4xl md:text-[4rem]"
         >
-          <h1>The Open Source</h1>
-          <Handlebars>Video Editor</Handlebars>
+          <h1>genID powered by</h1>
+          <Handlebars>The Force</Handlebars>
         </motion.div>
 
         <motion.p
@@ -54,8 +54,8 @@ export function Hero() {
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.8 }}
         >
-          A simple but powerful video editor that gets the job done. Works on
-          any platform.
+          AI-powered social media content generator that creates engaging
+          carousels and videos. Simple, powerful, and works on any platform.
         </motion.p>
 
         <motion.div

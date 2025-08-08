@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useMemo } from 'react';
-import { Plus, MoreHorizontal, Copy, Trash2, RefreshCw } from 'lucide-react';
+import React, { useMemo, useEffect, useCallback } from 'react';
+import { Plus, MoreHorizontal, Copy, Trash2, RefreshCw, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -15,31 +15,34 @@ import {
   useCarouselStore,
   useCurrentProject,
   useActiveCanvas,
-  useNavigationState
+  useNavigationState,
+  CanvasLoadingState
 } from '@/stores/carousel';
 import { InstagramCarouselCanvas } from '@/types/ai-timeline';
 import { useTimelineStore } from '@/stores/timeline-store';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
 interface CanvasNavigationProps {
-  position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' | 'external-left' | 'external-right' | 'external-top' | 'external-bottom';
   className?: string;
 }
 
-export function CanvasNavigation({ 
+export function CanvasNavigation({
   position = 'bottom-right',
-  className 
+  className
 }: CanvasNavigationProps) {
   const currentProject = useCurrentProject();
   const activeCanvas = useActiveCanvas();
   const navigationState = useNavigationState();
-  const { 
-    setActiveCanvas, 
-    addCanvas, 
-    removeCanvas, 
+  const {
+    setActiveCanvas,
+    addCanvas,
+    removeCanvas,
     duplicateCanvas,
     regenerateSlide,
-    updateNavigation 
+    updateNavigation,
+    getCanvasLoadingState
   } = useCarouselStore();
 
   // Only show if we have a carousel project
@@ -48,11 +51,11 @@ export function CanvasNavigation({
   }
 
   const { canvases } = currentProject;
-  const { 
-    isNavigationVisible, 
-    thumbnailSize, 
-    showAddButton, 
-    maxCanvasCount 
+  const {
+    isNavigationVisible,
+    thumbnailSize,
+    showAddButton,
+    maxCanvasCount
   } = navigationState;
 
   // Don't render if navigation is hidden
@@ -61,6 +64,62 @@ export function CanvasNavigation({
   }
 
   const canAddMore = canvases.length < maxCanvasCount;
+
+  // 🚀 Instagram-like keyboard navigation
+  const handleKeyboardNavigation = useCallback((event: KeyboardEvent) => {
+    // Only handle if we have canvases and the navigation is visible
+    if (!canvases.length || !activeCanvas || !isNavigationVisible) return;
+    
+    // Don't interfere with form inputs
+    const activeElement = document.activeElement;
+    if (activeElement && (
+      activeElement.tagName === 'INPUT' ||
+      activeElement.tagName === 'TEXTAREA' ||
+      activeElement.getAttribute('contenteditable') === 'true'
+    )) {
+      return;
+    }
+
+    const currentIndex = canvases.findIndex(c => c.id === activeCanvas.id);
+    if (currentIndex === -1) return;
+
+    let nextIndex = currentIndex;
+
+    switch (event.key) {
+      case 'ArrowLeft':
+        event.preventDefault();
+        nextIndex = currentIndex > 0 ? currentIndex - 1 : canvases.length - 1; // Wrap to last
+        break;
+      case 'ArrowRight':
+        event.preventDefault();
+        nextIndex = currentIndex < canvases.length - 1 ? currentIndex + 1 : 0; // Wrap to first
+        break;
+      default:
+        return; // Don't handle other keys
+    }
+
+    const nextCanvas = canvases[nextIndex];
+    if (nextCanvas && nextCanvas.id !== activeCanvas.id) {
+      setActiveCanvas(nextCanvas.id);
+      // Switch timeline context
+      useTimelineStore.getState().switchToCanvas(nextCanvas.id);
+      console.log(`🎯 Keyboard navigation: Canvas ${nextIndex + 1}/${canvases.length}`);
+    }
+  }, [canvases, activeCanvas, isNavigationVisible, setActiveCanvas]);
+
+  // Set up keyboard event listeners
+  useEffect(() => {
+    // Only add listeners if we have a carousel project
+    if (!currentProject || currentProject.type !== 'instagram-carousel') {
+      return;
+    }
+
+    document.addEventListener('keydown', handleKeyboardNavigation);
+    
+    return () => {
+      document.removeEventListener('keydown', handleKeyboardNavigation);
+    };
+  }, [currentProject, handleKeyboardNavigation]);
 
   // Calculate thumbnail dimensions based on size preference
   const thumbnailDimensions = useMemo(() => {
@@ -108,12 +167,17 @@ export function CanvasNavigation({
     await regenerateSlide(canvasId);
   };
 
-  // Position classes
-  const positionClasses = {
+  // Position classes with external positioning support
+  const positionClasses: Record<NonNullable<CanvasNavigationProps['position']>, string> = {
     'top-left': 'top-4 left-4',
     'top-right': 'top-4 right-4',
     'bottom-left': 'bottom-4 left-4',
-    'bottom-right': 'bottom-4 right-4'
+    'bottom-right': 'bottom-4 right-4',
+    // External positioning - outside the preview bounds
+    'external-left': 'top-1/2 left-4 -translate-y-1/2',
+    'external-right': 'top-1/2 right-4 -translate-y-1/2',
+    'external-top': 'top-4 left-1/2 -translate-x-1/2',
+    'external-bottom': 'bottom-4 left-1/2 -translate-x-1/2'
   };
 
   return (
@@ -133,19 +197,23 @@ export function CanvasNavigation({
         canvases.length > 6 ? "overflow-x-auto scrollbar-thin" : "",
         "min-w-0 scroll-smooth" // Allow shrinking and smooth scrolling
       )}>
-        {canvases.map((canvas, index) => (
-          <CanvasThumbnail
-            key={canvas.id}
-            canvas={canvas}
-            index={index}
-            isActive={canvas.id === activeCanvas?.id}
-            dimensions={thumbnailDimensions}
-            onClick={() => handleCanvasClick(canvas.id)}
-            onRemove={canvases.length > 1 ? (e) => handleRemoveCanvas(canvas.id, e) : undefined}
-            onDuplicate={canAddMore ? (e) => handleDuplicateCanvas(canvas.id, e) : undefined}
-            onRegenerate={(e) => handleRegenerateCanvas(canvas.id, e)}
-          />
-        ))}
+        {canvases.map((canvas, index) => {
+          const loadingState = getCanvasLoadingState(canvas.id);
+          return (
+            <CanvasThumbnail
+              key={canvas.id}
+              canvas={canvas}
+              index={index}
+              isActive={canvas.id === activeCanvas?.id}
+              dimensions={thumbnailDimensions}
+              loadingState={loadingState}
+              onClick={() => handleCanvasClick(canvas.id)}
+              onRemove={canvases.length > 1 ? (e) => handleRemoveCanvas(canvas.id, e) : undefined}
+              onDuplicate={canAddMore ? (e) => handleDuplicateCanvas(canvas.id, e) : undefined}
+              onRegenerate={(e) => handleRegenerateCanvas(canvas.id, e)}
+            />
+          );
+        })}
         
         {/* Add Canvas Button - Inside scrollable container */}
         {showAddButton && canAddMore && (
@@ -223,6 +291,7 @@ interface CanvasThumbnailProps {
   index: number;
   isActive: boolean;
   dimensions: { width: number; height: number };
+  loadingState: CanvasLoadingState | null;
   onClick: () => void;
   onRemove?: (event: React.MouseEvent) => void;
   onDuplicate?: (event: React.MouseEvent) => void;
@@ -234,12 +303,17 @@ function CanvasThumbnail({
   index,
   isActive,
   dimensions,
+  loadingState,
   onClick,
   onRemove,
   onDuplicate,
   onRegenerate
 }: CanvasThumbnailProps) {
   const hasContextMenu = onRemove || onDuplicate || onRegenerate;
+  const isLoading = loadingState?.isImageLoading;
+  const hasPlaceholder = loadingState?.hasPlaceholder;
+  const hasError = loadingState?.error;
+  const progress = loadingState?.imageLoadProgress || 0;
 
   return (
     <div className="relative group">
@@ -249,25 +323,57 @@ function CanvasThumbnail({
           "relative overflow-hidden rounded-md border-2 transition-all bg-gradient-to-br from-purple-500/20 to-blue-500/20 hover:from-purple-500/30 hover:to-blue-500/30",
           isActive
             ? "border-white shadow-lg shadow-white/20"
-            : "border-white/30 hover:border-white/50"
+            : "border-white/30 hover:border-white/50",
+          hasError && "border-red-500/50",
+          isLoading && "animate-pulse"
         )}
         style={dimensions}
         onClick={onClick}
-        title={`Canvas ${index + 1}: ${canvas.slideMetadata.title}`}
+        title={`Canvas ${index + 1}: ${canvas.slideMetadata.title}${isLoading ? ' (Loading...)' : ''}${hasError ? ' (Error)' : ''}`}
       >
-        {/* Background Image */}
-        {canvas.backgroundImage ? (
+        {/* Background Image or Placeholder */}
+        {canvas.backgroundImage && !hasPlaceholder ? (
           <img
             src={canvas.backgroundImage}
             alt={`Canvas ${index + 1}`}
-            className="w-full h-full object-cover"
+            className={cn(
+              "w-full h-full object-cover transition-opacity",
+              isLoading ? "opacity-70" : "opacity-100"
+            )}
             draggable={false}
           />
         ) : (
-          <div className="w-full h-full flex items-center justify-center">
+          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-gray-800/50 to-gray-700/50">
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 text-white/70 animate-spin mb-1" />
+            ) : hasError ? (
+              <div className="w-4 h-4 bg-red-500 rounded mb-1" />
+            ) : (
+              <div className="w-4 h-4 bg-white/20 rounded mb-1" />
+            )}
             <span className="text-white/70 text-xs font-medium">
-              {index + 1}
+              {hasError ? 'ERR' : index + 1}
             </span>
+          </div>
+        )}
+
+        {/* Loading Progress Overlay */}
+        {isLoading && progress > 0 && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+            <div className="w-8 h-8 relative">
+              <div className="absolute inset-0 rounded-full border-2 border-white/20" />
+              <div
+                className="absolute inset-0 rounded-full border-2 border-white border-t-transparent animate-spin"
+                style={{
+                  transform: `rotate(${(progress / 100) * 360}deg)`
+                }}
+              />
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-white text-xs font-bold">
+                  {Math.round(progress)}%
+                </span>
+              </div>
+            </div>
           </div>
         )}
 

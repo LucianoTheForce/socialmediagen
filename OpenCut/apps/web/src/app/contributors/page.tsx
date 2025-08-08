@@ -15,13 +15,13 @@ import { Badge } from "@/components/ui/badge";
 import { EXTERNAL_TOOLS } from "@/constants/site";
 
 export const metadata: Metadata = {
-  title: "Contributors - OpenCut",
+  title: "Contributors - genID powered by The Force",
   description:
-    "Meet the amazing people who contribute to OpenCut, the free and open-source video editor.",
+    "Meet the amazing people who contribute to genID, the AI-powered social media content generator.",
   openGraph: {
-    title: "Contributors - OpenCut",
+    title: "Contributors - genID powered by The Force",
     description:
-      "Meet the amazing people who contribute to OpenCut, the free and open-source video editor.",
+      "Meet the amazing people who contribute to genID, the AI-powered social media content generator.",
     type: "website",
   },
 };
@@ -38,11 +38,11 @@ interface Contributor {
 async function getContributors(): Promise<Contributor[]> {
   try {
     const response = await fetch(
-      "https://api.github.com/repos/OpenCut-app/OpenCut/contributors?per_page=100",
+      "https://api.github.com/repos/genID-app/genID/contributors?per_page=100",
       {
         headers: {
           Accept: "application/vnd.github.v3+json",
-          "User-Agent": "OpenCut-Web-App",
+          "User-Agent": "genID-Web-App",
         },
         next: { revalidate: 600 }, // 10 minutes
       } as RequestInit
@@ -85,7 +85,7 @@ export default async function ContributorsPage() {
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-20">
               <Link
-                href={"https://github.com/OpenCut-app/OpenCut"}
+                href={"https://github.com/genID-app/genID"}
                 target="_blank"
               >
                 <Badge variant="secondary" className="gap-2 mb-6">
@@ -97,8 +97,8 @@ export default async function ContributorsPage() {
                 Contributors
               </h1>
               <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-                Meet the amazing developers who are building the future of video
-                editing
+                Meet the amazing developers who are building the future of AI-powered
+                content generation
               </p>
 
               <div className="flex items-center justify-center gap-8 text-sm">
@@ -177,7 +177,7 @@ export default async function ContributorsPage() {
                     All Contributors
                   </h2>
                   <p className="text-muted-foreground">
-                    Everyone who makes OpenCut better
+                    Everyone who makes genID better
                   </p>
                 </div>
 
@@ -229,7 +229,7 @@ export default async function ContributorsPage() {
                   view on GitHub.
                 </p>
                 <Link
-                  href="https://github.com/OpenCut-app/OpenCut/graphs/contributors"
+                  href="https://github.com/genID-app/genID/graphs/contributors"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -246,7 +246,7 @@ export default async function ContributorsPage() {
               <div className="text-center mb-12">
                 <h2 className="text-2xl font-semibold mb-2">External Tools</h2>
                 <p className="text-muted-foreground">
-                  Tools we use to build OpenCut
+                  Tools we use to build genID
                 </p>
               </div>
 
@@ -293,14 +293,14 @@ export default async function ContributorsPage() {
               <div className="max-w-2xl mx-auto">
                 <h2 className="text-3xl font-bold mb-4">Join the community</h2>
                 <p className="text-lg text-muted-foreground mb-10 leading-relaxed">
-                  OpenCut is built by developers like you. Every contribution,
-                  no matter how small, helps make video editing more accessible
+                  genID is built by developers like you. Every contribution,
+                  no matter how small, helps make AI-powered content generation more accessible
                   for everyone.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Link
-                    href="https://github.com/OpenCut-app/OpenCut/blob/main/.github/CONTRIBUTING.md"
+                    href="https://github.com/genID-app/genID/blob/main/.github/CONTRIBUTING.md"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -310,7 +310,7 @@ export default async function ContributorsPage() {
                     </Button>
                   </Link>
                   <Link
-                    href="https://github.com/OpenCut-app/OpenCut/issues"
+                    href="https://github.com/genID-app/genID/issues"
                     target="_blank"
                     rel="noopener noreferrer"
                   >

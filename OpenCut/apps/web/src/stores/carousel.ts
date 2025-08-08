@@ -42,6 +42,18 @@ export interface BackgroundGenerationTask {
   startTime?: Date;
   completedTime?: Date;
   cost?: number;
+  progress?: number; // 0-100 for loading progress
+}
+
+// Loading State for Individual Canvas
+export interface CanvasLoadingState {
+  canvasId: string;
+  isTextLoaded: boolean;
+  isImageLoading: boolean;
+  isImageLoaded: boolean;
+  imageLoadProgress: number; // 0-100
+  hasPlaceholder: boolean;
+  error?: string;
 }
 
 // Carousel Store State
@@ -55,6 +67,9 @@ export interface CarouselStore {
   // Generation state
   generationProgress: GenerationProgress;
   backgroundQueue: BackgroundGenerationTask[];
+  
+  // Loading states for individual canvases
+  canvasLoadingStates: { [canvasId: string]: CanvasLoadingState };
   
   // History and cache
   recentProjects: InstagramCarouselProject[];
@@ -88,6 +103,13 @@ export interface CarouselStore {
   updateBackgroundTask: (taskId: string, updates: Partial<BackgroundGenerationTask>) => void;
   removeFromBackgroundQueue: (taskId: string) => void;
   processBackgroundQueue: () => Promise<void>;
+  
+  // Canvas Loading State Management
+  updateCanvasLoadingState: (canvasId: string, updates: Partial<CanvasLoadingState>) => void;
+  setImageLoading: (canvasId: string, isLoading: boolean, progress?: number) => void;
+  setImageLoaded: (canvasId: string, imageUrl: string) => void;
+  setImageError: (canvasId: string, error: string) => void;
+  getCanvasLoadingState: (canvasId: string) => CanvasLoadingState | null;
   
   // Media Assets Management
   addMediaAsset: (canvasId: string, assetUrl: string) => void;
@@ -135,6 +157,7 @@ export const useCarouselStore = create<CarouselStore>()(
         navigation: defaultNavigation,
         generationProgress: defaultGenerationProgress,
         backgroundQueue: [],
+        canvasLoadingStates: {},
         recentProjects: [],
         mediaAssets: {},
 
@@ -349,7 +372,7 @@ export const useCarouselStore = create<CarouselStore>()(
           );
         },
 
-        // Generation Management Actions
+        // Generation Management Actions - Instagram-like Instant UX
         startGeneration: async (options) => {
           const { currentProject, generationProgress } = get();
           // Prevent duplicate concurrent generations
@@ -357,24 +380,100 @@ export const useCarouselStore = create<CarouselStore>()(
             return;
           }
           
+          // 🚀 INSTANT: Create placeholder project with text-only slides immediately
+          const placeholderProject = createInstagramCarouselProject(
+            `Carousel: ${options.prompt.substring(0, 50)}...`,
+            'current-user',
+            {
+              slides: Array.from({ length: options.canvasCount }, (_, index) => ({
+                slideNumber: index + 1,
+                title: `Slide ${index + 1}`,
+                content: 'Generating content...',
+                backgroundPrompt: options.prompt,
+                textStyles: {
+                  titleSize: 56,
+                  contentSize: 28,
+                  titleWeight: 'bold',
+                  contentWeight: 'normal',
+                  alignment: 'center'
+                }
+              }))
+            }
+          );
+
+          // Create placeholder canvases with loading states
+          const placeholderCanvases = placeholderProject.canvases.map((canvas, index) => ({
+            ...canvas,
+            backgroundImage: '/api/placeholder/instagram-post', // Placeholder image
+            thumbnailUrl: '/api/placeholder/instagram-post',
+            slideMetadata: {
+              ...canvas.slideMetadata,
+              title: `Slide ${index + 1}`,
+              content: 'AI is generating your content...',
+              backgroundPrompt: options.prompt,
+              isLoading: true
+            }
+          }));
+
+          placeholderProject.canvases = placeholderCanvases;
+          if (options.layoutPreset) {
+            placeholderProject.templateId = options.layoutPreset;
+            if (!placeholderProject.tags.includes(options.layoutPreset)) {
+              placeholderProject.tags.push(options.layoutPreset);
+            }
+          }
+
+          // 🎯 INSTANT: Display project immediately
+          get().setCurrentProject(placeholderProject);
+          get().addToHistory(placeholderProject);
+
+          // Create timeline contexts for all placeholder canvases
+          const timelineStore = useTimelineStore.getState();
+          placeholderProject.canvases.forEach((canvas) => {
+            timelineStore.createCanvasTimeline(canvas.id);
+          });
+
+          // Switch to the first canvas
+          const activeCanvas = placeholderProject.canvases[0];
+          if (activeCanvas) {
+            timelineStore.switchToCanvas(activeCanvas.id);
+          }
+
+          // Set generation in progress state
           set(
             (state) => ({
               generationProgress: {
                 isGenerating: true,
                 currentStep: 'text',
-                stepProgress: 0,
-                totalProgress: 0,
+                stepProgress: 10,
+                totalProgress: 10,
                 currentSlide: 1,
                 totalSlides: options.canvasCount,
                 startTime: new Date()
               }
             }),
             false,
-            'startGeneration'
+            'instantPlaceholderCreated'
           );
 
+          // 🔥 BACKGROUND: Start real AI generation
           try {
-            // Call the carousel API
+            console.log('🚀 Starting background AI generation...');
+            
+            // Update progress to show text generation
+            set(
+              (state) => ({
+                generationProgress: {
+                  ...state.generationProgress,
+                  currentStep: 'text',
+                  stepProgress: 30,
+                  totalProgress: 30
+                }
+              }),
+              false,
+              'textGenerationStarted'
+            );
+
             const response = await fetch('/api/ai/carousel', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -386,89 +485,147 @@ export const useCarouselStore = create<CarouselStore>()(
             }
 
             const payload = await response.json();
-            // Accept both shapes: { success, data } and plain result
             const result = (payload && typeof payload === 'object' && 'data' in payload) ? (payload as any).data : payload;
 
             if (!result || !Array.isArray(result.slides)) {
               throw new Error('Invalid API response: slides missing');
             }
-            
-            // Create project from API result
-            const newProject = createInstagramCarouselProject(
-              `Carousel: ${options.prompt.substring(0, 50)}...`,
-              'current-user', // TODO: Get from auth context
-              result
-            );
 
-            // Create canvases from generated slides
-            const canvases = result.slides.map((slide: any, index: number) =>
-              createCarouselCanvas(slide, index + 1, index === 0)
-            );
+            console.log('✅ AI content generated, updating project...');
 
-            newProject.canvases = canvases;
+            // 📝 UPDATE: Replace placeholder content with real AI-generated content
+            const { currentProject: updatedProject } = get();
+            if (updatedProject && updatedProject.id === placeholderProject.id) {
+              const enhancedCanvases = updatedProject.canvases.map((canvas, index) => {
+                const slide = result.slides[index];
+                if (!slide) return canvas;
 
-            // Update state with new project
-            get().setCurrentProject(newProject);
-            get().addToHistory(newProject);
+                // Update canvas with real content
+                const updatedCanvas = {
+                  ...canvas,
+                  slideMetadata: {
+                    ...canvas.slideMetadata,
+                    title: slide.title || `Slide ${index + 1}`,
+                    content: slide.content || 'Generated content',
+                    backgroundPrompt: slide.backgroundPrompt || options.prompt,
+                    isLoading: false
+                  },
+                  // Keep placeholder background until images load
+                  backgroundImage: canvas.backgroundImage,
+                  thumbnailUrl: canvas.thumbnailUrl
+                };
 
-            // 🎯 Auto-populate timeline contexts with AI-generated elements
-            const timelineStore = useTimelineStore.getState();
-            newProject.canvases.forEach((canvas) => {
-              // Create timeline context for this canvas
-              timelineStore.createCanvasTimeline(canvas.id);
-              
-              // Populate timeline with AI-generated elements from canvas
-              if (canvas.elements && canvas.elements.length > 0) {
-                timelineStore.switchToCanvas(canvas.id);
-                
-                // Add each AI-generated element to the appropriate timeline track
-                canvas.elements.forEach((element) => {
-                  // Convert AI elements to timeline format
-                  if (element.type === 'ai-image') {
-                    // For AI images, we need to add them as media elements
-                    // Note: This requires the image to be available in the media store
-                    console.log(`Adding AI image element to timeline: ${element.id}`);
-                    // TODO: Add proper media item creation for AI images when media store integration is ready
-                  } else if (element.type === 'ai-text') {
-                    // For AI text, add as text element - cast to get the specific text properties
-                    const aiTextElement = element as any; // Type assertion for AI text element
-                    
-                    // Find or create text track
-                    const trackId = timelineStore.findOrCreateTrack('text');
-                    
-                    timelineStore.addElementToTrack(trackId, {
-                      type: 'text',
-                      name: aiTextElement.aiMetadata?.prompt || 'AI Generated Text',
-                      content: aiTextElement.content || 'Generated text',
-                      duration: 3000, // 3 seconds in milliseconds
-                      startTime: 0,
-                      trimStart: 0,
-                      trimEnd: 0,
-                      fontSize: aiTextElement.fontSize || 48,
-                      fontFamily: aiTextElement.fontFamily || 'Arial',
-                      color: aiTextElement.color || '#ffffff',
-                      backgroundColor: aiTextElement.backgroundColor || 'transparent',
-                      textAlign: aiTextElement.alignment || 'center',
-                      fontWeight: aiTextElement.fontWeight || 'normal',
-                      fontStyle: 'normal',
-                      textDecoration: 'none',
-                      x: aiTextElement.position?.x || 0,
-                      y: aiTextElement.position?.y || 0,
-                      rotation: 0,
-                      opacity: 1,
-                    });
+                // Update text elements with AI content and enhanced styles
+                if (updatedCanvas.elements) {
+                  updatedCanvas.elements = updatedCanvas.elements.map((element: any) => {
+                    if (element.type === 'ai-text') {
+                      if (element.name.includes('Title')) {
+                        return {
+                          ...element,
+                          content: slide.title || `Slide ${index + 1}`,
+                          fontSize: slide.textStyles?.titleSize || 56,
+                          fontWeight: slide.textStyles?.titleWeight || 'bold',
+                          alignment: slide.textStyles?.alignment || 'center'
+                        };
+                      } else if (element.name.includes('Content')) {
+                        return {
+                          ...element,
+                          content: slide.content || 'Generated content',
+                          fontSize: slide.textStyles?.contentSize || 28,
+                          fontWeight: slide.textStyles?.contentWeight || 'normal',
+                          alignment: slide.textStyles?.alignment || 'center'
+                        };
+                      }
+                    }
+                    return element;
+                  });
+                }
+
+                return updatedCanvas;
+              });
+
+              const updatedProjectWithContent = {
+                ...updatedProject,
+                canvases: enhancedCanvases,
+                updatedAt: new Date()
+              };
+
+              get().setCurrentProject(updatedProjectWithContent);
+
+              // Update progress
+              set(
+                (state) => ({
+                  generationProgress: {
+                    ...state.generationProgress,
+                    currentStep: 'images',
+                    stepProgress: 70,
+                    totalProgress: 70
                   }
-                });
-                
-                console.log(`✅ Timeline populated for canvas ${canvas.id} with ${canvas.elements.length} AI elements`);
+                }),
+                false,
+                'contentUpdated'
+              );
+
+              // 🖼️ PROGRESSIVE: Update timeline with real content
+              enhancedCanvases.forEach((canvas) => {
+                if (canvas.elements && canvas.elements.length > 0) {
+                  timelineStore.switchToCanvas(canvas.id);
+                  
+                  canvas.elements.forEach((element) => {
+                    if (element.type === 'ai-text') {
+                      const aiTextElement = element as any;
+                      const trackId = timelineStore.findOrCreateTrack('text');
+                      
+                      timelineStore.addElementToTrack(trackId, {
+                        type: 'text',
+                        name: aiTextElement.name || 'AI Generated Text',
+                        content: aiTextElement.content || 'Generated text',
+                        duration: 3000,
+                        startTime: 0,
+                        trimStart: 0,
+                        trimEnd: 0,
+                        fontSize: aiTextElement.fontSize || 48,
+                        fontFamily: aiTextElement.fontFamily || 'Arial',
+                        color: aiTextElement.color || '#ffffff',
+                        backgroundColor: aiTextElement.backgroundColor || 'transparent',
+                        textAlign: aiTextElement.alignment || 'center',
+                        fontWeight: aiTextElement.fontWeight || 'normal',
+                        fontStyle: 'normal',
+                        textDecoration: 'none',
+                        x: aiTextElement.position?.x || 0,
+                        y: aiTextElement.position?.y || 0,
+                        rotation: 0,
+                        opacity: 1,
+                      });
+                    }
+                  });
+                }
+              });
+
+              // Switch back to active canvas
+              const activeCanvas = enhancedCanvases.find(c => c.isActive) || enhancedCanvases[0];
+              if (activeCanvas) {
+                timelineStore.switchToCanvas(activeCanvas.id);
               }
-            });
-            
-            // Switch to the first (active) canvas
-            const activeCanvas = newProject.canvases.find(c => c.isActive) || newProject.canvases[0];
-            if (activeCanvas) {
-              timelineStore.switchToCanvas(activeCanvas.id);
-              console.log(`✅ Active canvas timeline: ${activeCanvas.id}`);
+
+              console.log('✅ Content updated, starting background image generation...');
+
+              // 🎨 BACKGROUND: Generate images progressively
+              enhancedCanvases.forEach((canvas, index) => {
+                const slide = result.slides[index];
+                if (slide && slide.backgroundPrompt) {
+                  get().addToBackgroundQueue({
+                    id: `bg_${canvas.id}_${Date.now()}`,
+                    slideNumber: canvas.slideMetadata.slideNumber,
+                    canvasId: canvas.id,
+                    prompt: slide.backgroundPrompt,
+                    status: 'pending'
+                  });
+                }
+              });
+
+              // Process background images
+              await get().processBackgroundQueue();
             }
 
             // Mark generation as complete
@@ -487,13 +644,14 @@ export const useCarouselStore = create<CarouselStore>()(
             );
 
           } catch (error) {
-            console.error('Generation failed:', error);
+            console.error('Background generation failed:', error);
+            // Keep the placeholder project but show error
             set(
               (state) => ({
                 generationProgress: {
                   ...state.generationProgress,
                   isGenerating: false,
-                  error: error instanceof Error ? error.message : 'Unknown error'
+                  error: error instanceof Error ? error.message : 'Generation failed, but basic slides are available'
                 }
               }),
               false,
@@ -572,12 +730,15 @@ export const useCarouselStore = create<CarouselStore>()(
 
           for (const task of pendingTasks) {
             try {
+              // Set loading state for this canvas
+              get().setImageLoading(task.canvasId, true, 0);
+              
               updateBackgroundTask(task.id, {
                 status: 'generating',
                 startTime: new Date()
               });
 
-              // Generate background image
+              // Generate background image with progress tracking
               const response = await fetch('/api/ai/runware/image', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -591,7 +752,13 @@ export const useCarouselStore = create<CarouselStore>()(
                 throw new Error(`Background generation failed: ${response.statusText}`);
               }
 
+              // Update progress to 50% while processing response
+              get().setImageLoading(task.canvasId, true, 50);
+
               const result = await response.json();
+              
+              // Update progress to 90% before completing
+              get().setImageLoading(task.canvasId, true, 90);
               
               updateBackgroundTask(task.id, {
                 status: 'completed',
@@ -600,11 +767,8 @@ export const useCarouselStore = create<CarouselStore>()(
                 cost: result.cost || 0.05
               });
 
-              // Update canvas with generated background
-              get().updateCanvas(task.canvasId, {
-                backgroundImage: result.imageUrl,
-                thumbnailUrl: result.imageUrl
-              });
+              // Mark image as loaded - this will update the canvas automatically
+              get().setImageLoaded(task.canvasId, result.imageUrl);
 
               // Auto-populate generated background into media browser
               if (currentProject && result.imageUrl) {
@@ -647,6 +811,70 @@ export const useCarouselStore = create<CarouselStore>()(
               });
             }
           }
+        },
+
+        // Canvas Loading State Management Actions
+        updateCanvasLoadingState: (canvasId, updates) => {
+          const defaultState: CanvasLoadingState = {
+            canvasId,
+            isTextLoaded: false,
+            isImageLoading: false,
+            isImageLoaded: false,
+            imageLoadProgress: 0,
+            hasPlaceholder: true
+          };
+
+          set(
+            (state) => ({
+              canvasLoadingStates: {
+                ...state.canvasLoadingStates,
+                [canvasId]: {
+                  ...defaultState,
+                  ...state.canvasLoadingStates[canvasId],
+                  ...updates
+                }
+              }
+            }),
+            false,
+            'updateCanvasLoadingState'
+          );
+        },
+
+        setImageLoading: (canvasId, isLoading, progress = 0) => {
+          get().updateCanvasLoadingState(canvasId, {
+            isImageLoading: isLoading,
+            imageLoadProgress: progress,
+            isImageLoaded: false
+          });
+        },
+
+        setImageLoaded: (canvasId, imageUrl) => {
+          get().updateCanvasLoadingState(canvasId, {
+            isImageLoading: false,
+            isImageLoaded: true,
+            imageLoadProgress: 100,
+            hasPlaceholder: false
+          });
+          
+          // Update canvas with the loaded image
+          get().updateCanvas(canvasId, {
+            backgroundImage: imageUrl,
+            thumbnailUrl: imageUrl
+          });
+        },
+
+        setImageError: (canvasId, error) => {
+          get().updateCanvasLoadingState(canvasId, {
+            isImageLoading: false,
+            isImageLoaded: false,
+            imageLoadProgress: 0,
+            error
+          });
+        },
+
+        getCanvasLoadingState: (canvasId) => {
+          const { canvasLoadingStates } = get();
+          return canvasLoadingStates[canvasId] || null;
         },
 
         // Media Assets Management Actions

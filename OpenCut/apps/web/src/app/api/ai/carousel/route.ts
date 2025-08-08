@@ -20,9 +20,10 @@ export async function POST(request: NextRequest) {
       prompt,
       canvasCount = 5,
       backgroundStrategy = 'unique',
+      imageProvider = 'runware', // Default to runware
     } = body;
 
-    console.log('[Carousel API] Generating carousel with:', { prompt, canvasCount, backgroundStrategy });
+    console.log('[Carousel API] Generating carousel with:', { prompt, canvasCount, backgroundStrategy, imageProvider });
 
     // Step 1: Content Analysis with error handling
     let contentType: 'educational' | 'promotional' | 'inspirational' | 'storytelling' | 'tips' = 'promotional';
@@ -76,7 +77,30 @@ export async function POST(request: NextRequest) {
         const parsedResponse = JSON.parse(responseContent);
         
         if (parsedResponse.slides && Array.isArray(parsedResponse.slides)) {
-          slides = parsedResponse.slides;
+          // Enhance slides with layout suggestions
+          slides = parsedResponse.slides.map((slide: any, index: number) => {
+            const layoutSuggestion = CarouselPromptService.generateSlideLayoutSuggestions(
+              slide.content || '',
+              index,
+              parsedResponse.slides.length
+            );
+            
+            return {
+              ...slide,
+              layoutSuggestion,
+              // Add specific text formatting
+              textStyles: {
+                titleSize: layoutSuggestion.fontSizeRecommendation === 'large' ? 72 : 
+                         layoutSuggestion.fontSizeRecommendation === 'medium' ? 56 : 42,
+                contentSize: layoutSuggestion.fontSizeRecommendation === 'large' ? 36 : 
+                           layoutSuggestion.fontSizeRecommendation === 'medium' ? 28 : 20,
+                titleWeight: index === 0 ? 'bold' : 'semibold',
+                contentWeight: 'normal',
+                alignment: layoutSuggestion.textPlacement === 'center' ? 'center' : 
+                          layoutSuggestion.textPlacement === 'left' ? 'left' : 'right'
+              }
+            };
+          });
         } else {
           throw new Error('Invalid response structure');
         }
@@ -112,10 +136,20 @@ export async function POST(request: NextRequest) {
       const imageStartTime = performance.now();
       console.log('[Carousel API] Generating background images...');
 
+      const imageService = imageProvider === 'runware' ? runwareService : null;
+      
+      if (!imageService) {
+        throw new Error(`Image provider ${imageProvider} not supported`);
+      }
+
       if (backgroundStrategy === 'thematic') {
         // Single thematic background for all slides
-        const thematicPrompt = `Professional, cohesive background for ${contentType} content about ${prompt}`;
-        const thematicImage = await runwareService.generateImage(thematicPrompt, {
+        const thematicPrompt = CarouselPromptService.optimizePromptForRunware(
+          `Professional, cohesive background for ${contentType} content about ${prompt}`,
+          'Instagram carousel thematic background'
+        );
+        
+        const thematicImage = await imageService.generateImage(thematicPrompt, {
           dimensions: { width: 1080, height: 1080 },
           style: 'realistic',
           canvasFormat: 'instagram-post'
@@ -126,11 +160,17 @@ export async function POST(request: NextRequest) {
         
       } else {
         // Generate unique backgrounds for each slide sequentially
-        const backgroundPrompts = slides.map(slide => slide.backgroundPrompt || `Background for slide ${slide.slideNumber}`);
+        const backgroundPrompts = slides.map((slide, index) => {
+          const basePrompt = slide.backgroundPrompt || `Background for slide ${slide.slideNumber}`;
+          return CarouselPromptService.optimizePromptForRunware(
+            basePrompt,
+            `Instagram carousel slide ${index + 1} of ${slides.length}`
+          );
+        });
         
         for (const bgPrompt of backgroundPrompts) {
           try {
-            const imageResult = await runwareService.generateImage(bgPrompt, {
+            const imageResult = await imageService.generateImage(bgPrompt, {
               dimensions: { width: 1080, height: 1080 },
               style: 'realistic',
               canvasFormat: 'instagram-post'
@@ -139,8 +179,15 @@ export async function POST(request: NextRequest) {
             imageCost += imageResult.aiMetadata?.cost || 0.04;
           } catch (imageError) {
             console.warn('[Carousel API] Failed to generate image for prompt:', bgPrompt, imageError);
-            // Use a fallback color
-            backgroundImages.push('#667eea');
+            // Use a fallback gradient
+            const gradients = [
+              'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+              'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+              'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+              'linear-gradient(135deg, #30cfd0 0%, #330867 100%)'
+            ];
+            backgroundImages.push(gradients[backgroundImages.length % gradients.length]);
           }
         }
       }
@@ -162,7 +209,15 @@ export async function POST(request: NextRequest) {
     const finalSlides = slides.map((slide, index) => ({
       ...slide,
       backgroundImage: backgroundImages[index] || backgroundImages[0] || '#667eea',
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      // Ensure text styles are included
+      textStyles: slide.textStyles || {
+        titleSize: 56,
+        contentSize: 28,
+        titleWeight: 'semibold',
+        contentWeight: 'normal',
+        alignment: 'center'
+      }
     }));
 
     // Calculate totals
@@ -184,7 +239,8 @@ export async function POST(request: NextRequest) {
         imageCost: parseFloat(imageCost.toFixed(4)),
         compositionRulesUsed: compositionRules.length,
         generationTimestamp: new Date().toISOString(),
-        version: '2.0.0'
+        imageProvider: imageProvider,
+        version: '2.1.0'
       }
     };
 

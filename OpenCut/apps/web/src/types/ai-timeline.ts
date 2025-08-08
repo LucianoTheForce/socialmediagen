@@ -392,6 +392,9 @@ export interface CarouselGenerationOptions {
   prompt: string;
   canvasCount: number;
   backgroundStrategy: 'unique' | 'thematic';
+  imageProvider?: 'runware';
+  // Optional visual layout preset to style canvases/preview overlays
+  layoutPreset?: string;
   styleOptions: {
     tone: 'professional' | 'casual' | 'friendly' | 'playful' | 'inspirational';
     targetAudience?: string;

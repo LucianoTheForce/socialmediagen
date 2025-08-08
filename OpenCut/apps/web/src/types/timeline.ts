@@ -36,6 +36,11 @@ export interface TextElement extends BaseTimelineElement {
   y: number; // Position relative to canvas center
   rotation: number; // in degrees
   opacity: number; // 0-1
+  // Text box sizing behavior
+  boxMode?: "auto" | "fixed"; // auto: grow with content; fixed: wrap text within box
+  boxWidth?: number; // in canvas pixels (unscaled)
+  boxHeight?: number; // in canvas pixels (unscaled)
+  verticalAlign?: "top" | "middle" | "bottom";
 }
 
 // Typed timeline elements

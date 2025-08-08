@@ -209,6 +209,10 @@ interface TimelineStore {
         | "y"
         | "rotation"
         | "opacity"
+        | "boxMode"
+        | "boxWidth"
+        | "boxHeight"
+        | "verticalAlign"
       >
     >
   ) => void;

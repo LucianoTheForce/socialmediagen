@@ -18,7 +18,7 @@ import { useProjectStore } from "@/stores/project-store";
 import { TextElementDragState } from "@/types/editor";
 import { CanvasNavigation } from "@/components/editor/canvas-navigation";
 import { useCarouselStore } from "@/stores/carousel";
-import { isInstagramCarouselProject } from "@/types/ai-timeline";
+import { isInstagramCarouselProject, getActiveCanvas } from "@/types/ai-timeline";
 
 interface ActiveElement {
   element: TimelineElement;
@@ -344,10 +344,12 @@ export function PreviewPanel() {
 
       const scaleRatio = previewDimensions.width / canvasSize.width;
 
+      const useFixedBox = element.boxMode === "fixed" && element.boxWidth && element.boxHeight;
+
       return (
         <div
           key={element.id}
-          className="absolute flex items-center justify-center cursor-grab"
+          className="absolute cursor-grab"
           onMouseDown={(e) =>
             handleTextMouseDown(e, element, elementData.track.id)
           }
@@ -385,7 +387,20 @@ export function PreviewPanel() {
               textDecoration: element.textDecoration,
               padding: "4px 8px",
               borderRadius: "2px",
-              whiteSpace: "pre-wrap",
+              whiteSpace: useFixedBox ? "pre-wrap" : "pre-wrap",
+              width: useFixedBox ? `${element.boxWidth}px` : "auto",
+              height: useFixedBox ? `${element.boxHeight}px` : "auto",
+              display: useFixedBox ? "flex" : undefined,
+              alignItems: useFixedBox
+                ? element.verticalAlign === "top"
+                  ? "flex-start"
+                  : element.verticalAlign === "bottom"
+                    ? "flex-end"
+                    : "center"
+                : undefined,
+              overflow: useFixedBox ? "hidden" : undefined,
+              wordBreak: useFixedBox ? "break-word" : undefined,
+              hyphens: useFixedBox ? "auto" : undefined,
               // Fallback for system fonts that don't have classes
               ...(fontClassName === "" && { fontFamily: element.fontFamily }),
             }}
@@ -480,7 +495,10 @@ export function PreviewPanel() {
           {hasAnyElements ? (
             <div
               ref={previewRef}
-              className="relative overflow-hidden border"
+              className={cn(
+                "relative overflow-hidden border",
+                currentProject && isInstagramCarouselProject(currentProject) && "rounded-2xl shadow-lg"
+              )}
               style={{
                 width: previewDimensions.width,
                 height: previewDimensions.height,
@@ -500,6 +518,9 @@ export function PreviewPanel() {
                   renderElement(elementData, index)
                 )
               )}
+              {currentProject && isInstagramCarouselProject(currentProject) && (
+                <CarouselPaginationOverlay currentProject={currentProject} />
+              )}
               {activeProject?.backgroundType === "blur" &&
                 blurBackgroundElements.length === 0 &&
                 activeElements.length > 0 && (
@@ -507,13 +528,13 @@ export function PreviewPanel() {
                     Add a video or image to use blur background
                   </div>
                 )}
-              
-              {/* Canvas Navigation for Instagram Carousel Projects */}
-              {currentProject && isInstagramCarouselProject(currentProject) && (
-                <CanvasNavigation position="bottom-right" />
-              )}
             </div>
           ) : null}
+          
+          {/* External Canvas Navigation - positioned outside preview area */}
+          {currentProject && isInstagramCarouselProject(currentProject) && hasAnyElements && (
+            <CanvasNavigation position="external-bottom" />
+          )}
 
           <div className="flex-1" />
 
@@ -547,6 +568,41 @@ export function PreviewPanel() {
         />
       )}
     </>
+  );
+}
+
+function CarouselPaginationOverlay({
+  currentProject,
+  variant = "default",
+}: {
+  currentProject: any;
+  variant?: "default" | "fullscreen";
+}) {
+  if (!isInstagramCarouselProject(currentProject)) return null;
+  const activeCanvas = currentProject.canvases.find((c: any) => c.isActive);
+  const total = currentProject.canvases.length;
+  const activeIndex = activeCanvas
+    ? currentProject.canvases.findIndex((c: any) => c.id === activeCanvas.id)
+    : 0;
+
+  return (
+    <div
+      aria-hidden
+      className={cn(
+        "absolute left-1/2 -translate-x-1/2 flex items-center gap-2",
+        variant === "fullscreen" ? "bottom-4" : "bottom-3"
+      )}
+    >
+      {Array.from({ length: total }).map((_, i) => (
+        <span
+          key={i}
+          className={cn(
+            "inline-block rounded-full transition-all",
+            i === activeIndex ? "w-6 h-1.5 bg-white/90" : "w-1.5 h-1.5 bg-white/40"
+          )}
+        />
+      ))}
+    </div>
   );
 }
 
@@ -750,7 +806,10 @@ function FullscreenPreview({
     <div className="fixed inset-0 z-9999 flex flex-col">
       <div className="flex-1 flex items-center justify-center bg-background">
         <div
-          className="relative overflow-hidden border border-border m-3"
+          className={cn(
+            "relative overflow-hidden border border-border m-3",
+            currentProject && isInstagramCarouselProject(currentProject) && "rounded-2xl shadow-xl"
+          )}
           style={{
             width: previewDimensions.width,
             height: previewDimensions.height,
@@ -769,6 +828,9 @@ function FullscreenPreview({
             activeElements.map((elementData, index) =>
               renderElement(elementData, index)
             )
+          )}
+          {currentProject && isInstagramCarouselProject(currentProject) && (
+            <CarouselPaginationOverlay currentProject={currentProject} variant="fullscreen" />
           )}
           {activeProject?.backgroundType === "blur" &&
             blurBackgroundElements.length === 0 &&

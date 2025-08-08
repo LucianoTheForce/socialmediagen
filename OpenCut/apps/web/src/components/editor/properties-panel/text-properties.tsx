@@ -221,6 +221,108 @@ export function TextProperties({
         </PropertyItemValue>
       </PropertyItem>
       <PropertyItem direction="row">
+        <PropertyItemLabel>Alignment</PropertyItemLabel>
+        <PropertyItemValue>
+          <div className="flex gap-2">
+            <Button
+              variant={element.textAlign === "left" ? "default" : "outline"}
+              size="sm"
+              onClick={() => updateTextElement(trackId, element.id, { textAlign: "left" })}
+            >
+              Left
+            </Button>
+            <Button
+              variant={element.textAlign === "center" ? "default" : "outline"}
+              size="sm"
+              onClick={() => updateTextElement(trackId, element.id, { textAlign: "center" })}
+            >
+              Center
+            </Button>
+            <Button
+              variant={element.textAlign === "right" ? "default" : "outline"}
+              size="sm"
+              onClick={() => updateTextElement(trackId, element.id, { textAlign: "right" })}
+            >
+              Right
+            </Button>
+          </div>
+        </PropertyItemValue>
+      </PropertyItem>
+
+      <PropertyItem direction="column">
+        <PropertyItemLabel>Text Box</PropertyItemLabel>
+        <PropertyItemValue>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={element.boxMode === "auto" || !element.boxMode ? "default" : "outline"}
+              size="sm"
+              onClick={() => updateTextElement(trackId, element.id, { boxMode: "auto" })}
+            >
+              Auto
+            </Button>
+            <Button
+              variant={element.boxMode === "fixed" ? "default" : "outline"}
+              size="sm"
+              onClick={() => updateTextElement(trackId, element.id, { boxMode: "fixed", boxWidth: element.boxWidth || 500, boxHeight: element.boxHeight || 200 })}
+            >
+              Fixed
+            </Button>
+          </div>
+          {element.boxMode === "fixed" && (
+            <div className="mt-3 grid grid-cols-2 gap-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground w-12">Width</span>
+                <Input
+                  type="number"
+                  min={50}
+                  max={4000}
+                  value={element.boxWidth || 500}
+                  onChange={(e) => updateTextElement(trackId, element.id, { boxWidth: Math.max(50, Math.min(4000, Number(e.target.value))) })}
+                  className="h-7 w-24 !text-xs"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground w-12">Height</span>
+                <Input
+                  type="number"
+                  min={50}
+                  max={4000}
+                  value={element.boxHeight || 200}
+                  onChange={(e) => updateTextElement(trackId, element.id, { boxHeight: Math.max(50, Math.min(4000, Number(e.target.value))) })}
+                  className="h-7 w-24 !text-xs"
+                />
+              </div>
+              <div className="col-span-2 flex items-center gap-2">
+                <span className="text-xs text-muted-foreground w-12">V Align</span>
+                <div className="flex gap-2">
+                  <Button
+                    variant={element.verticalAlign === "top" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => updateTextElement(trackId, element.id, { verticalAlign: "top" })}
+                  >
+                    Top
+                  </Button>
+                  <Button
+                    variant={element.verticalAlign === "middle" || !element.verticalAlign ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => updateTextElement(trackId, element.id, { verticalAlign: "middle" })}
+                  >
+                    Middle
+                  </Button>
+                  <Button
+                    variant={element.verticalAlign === "bottom" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => updateTextElement(trackId, element.id, { verticalAlign: "bottom" })}
+                  >
+                    Bottom
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+        </PropertyItemValue>
+      </PropertyItem>
+      <PropertyItem direction="row">
         <PropertyItemLabel>Background</PropertyItemLabel>
         <PropertyItemValue>
           <Input
