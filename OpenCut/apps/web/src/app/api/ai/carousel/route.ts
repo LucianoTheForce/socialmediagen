@@ -1,3 +1,4 @@
+export const runtime = 'nodejs';
 import { NextRequest, NextResponse } from 'next/server';
 import { CarouselPromptService } from '@/services/ai/carousel-prompt-service';
 import { openaiService } from '@/services/ai/openai-service';
@@ -21,6 +22,7 @@ export async function POST(request: NextRequest) {
       canvasCount = 5,
       backgroundStrategy = 'unique',
       imageProvider = 'runware', // Default to runware
+      skipImages = false,
     } = body;
 
     console.log('[Carousel API] Generating carousel with:', { prompt, canvasCount, backgroundStrategy, imageProvider });
@@ -127,12 +129,27 @@ export async function POST(request: NextRequest) {
       }));
     }
 
-    // Step 3: Generate background images with error handling
+    // Step 3: Generate background images with error handling (skippable for fast path)
     let imageGenerationTime = 0;
     let imageCost = 0;
     let backgroundImages: string[] = [];
 
     try {
+      if (skipImages) {
+        // Quick placeholders to avoid long-running requests
+        backgroundImages = Array.from({ length: canvasCount }, (_, i) => {
+          const gradients = [
+            'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+            'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+            'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+            'linear-gradient(135deg, #30cfd0 0%, #330867 100%)',
+          ];
+          return gradients[i % gradients.length];
+        });
+        throw new Error('Image generation skipped by request');
+      }
+
       const imageStartTime = performance.now();
       console.log('[Carousel API] Generating background images...');
 

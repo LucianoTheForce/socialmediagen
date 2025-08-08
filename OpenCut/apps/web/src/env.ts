@@ -17,6 +17,7 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_TOKEN: z.string().optional(),
     FREESOUND_CLIENT_ID: z.string(),
     FREESOUND_API_KEY: z.string(),
+    RUNWARE_API_KEY: z.string().optional(),
   },
   client: {},
   runtimeEnv: {
@@ -27,5 +28,6 @@ export const env = createEnv({
     UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
     FREESOUND_CLIENT_ID: process.env.FREESOUND_CLIENT_ID,
     FREESOUND_API_KEY: process.env.FREESOUND_API_KEY,
+    RUNWARE_API_KEY: process.env.RUNWARE_API_KEY,
   },
 });

@@ -1,6 +1,7 @@
 import { AIGenerationService } from './types';
 import { AIImageElement, AIImageGenerationOptions } from '@/types/ai-timeline';
 import { generateUUID } from '@/lib/utils';
+// Lazy import Vercel AI SDK provider at runtime to avoid type resolution issues during linting
 
 interface RunwareTask {
   taskType: string;
@@ -26,102 +27,6 @@ interface RunwareResponse {
 }
 
 export class RunwareService implements AIGenerationService {
-  private ws: WebSocket | null = null;
-  private apiKey: string;
-  private pendingTasks = new Map<string, {
-    resolve: (value: any) => void;
-    reject: (reason?: any) => void;
-    timeout: NodeJS.Timeout;
-  }>();
-
-  constructor() {
-    this.apiKey = process.env.RUNWARE_API_KEY || '';
-    if (!this.apiKey) {
-      console.warn('RUNWARE_API_KEY not found in environment variables');
-    }
-  }
-
-  private async ensureConnection(): Promise<void> {
-    if (this.ws?.readyState === WebSocket.OPEN) {
-      return;
-    }
-
-    return new Promise((resolve, reject) => {
-      try {
-        this.ws = new WebSocket('wss://ws-api.runware.ai/v1');
-        
-        this.ws.onopen = () => {
-          console.log('Runware WebSocket connected');
-          resolve();
-        };
-
-        this.ws.onmessage = (event) => {
-          this.handleMessage(event.data);
-        };
-
-        this.ws.onerror = (error) => {
-          console.error('Runware WebSocket error:', error);
-          reject(error);
-        };
-
-        this.ws.onclose = () => {
-          console.log('Runware WebSocket disconnected');
-          this.ws = null;
-        };
-
-      } catch (error) {
-        reject(error);
-      }
-    });
-  }
-
-  private handleMessage(data: string): void {
-    try {
-      const responses: RunwareResponse[] = JSON.parse(data);
-      
-      responses.forEach(response => {
-        const pending = this.pendingTasks.get(response.taskUUID);
-        if (!pending) return;
-
-        clearTimeout(pending.timeout);
-        this.pendingTasks.delete(response.taskUUID);
-
-        if (response.status === 'success') {
-          pending.resolve(response);
-        } else {
-          pending.reject(new Error(response.error || 'Generation failed'));
-        }
-      });
-    } catch (error) {
-      console.error('Failed to parse Runware response:', error);
-    }
-  }
-
-  private async sendTask(task: RunwareTask): Promise<RunwareResponse> {
-    await this.ensureConnection();
-    
-    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      throw new Error('WebSocket connection not available');
-    }
-
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(() => {
-        this.pendingTasks.delete(task.taskUUID);
-        reject(new Error('Generation timeout'));
-      }, 60000); // 60 second timeout
-
-      this.pendingTasks.set(task.taskUUID, {
-        resolve,
-        reject,
-        timeout,
-      });
-
-      this.ws!.send(JSON.stringify([{
-        ...task,
-        apiKey: this.apiKey,
-      }]));
-    });
-  }
 
   private getFormatDimensions(format: string): { width: number; height: number } {
     const formats: Record<string, { width: number; height: number }> = {
@@ -154,36 +59,56 @@ export class RunwareService implements AIGenerationService {
   }
 
   async generateImage(prompt: string, options: AIImageGenerationOptions): Promise<AIImageElement> {
-    const dimensions = options.dimensions || this.getFormatDimensions(options.canvasFormat);
-    const enhancedPrompt = this.enhancePromptForCarousel(prompt, options.style || 'realistic', options.canvasFormat);
+    console.log('🎨 RunwareService.generateImage() called');
+    console.log('📝 Input prompt:', prompt);
+    console.log('⚙️ Input options:', options);
     
-    const task: RunwareTask = {
-      taskType: 'imageInference',
-      taskUUID: generateUUID(),
-      prompt: enhancedPrompt,
-      width: dimensions.width,
-      height: dimensions.height,
-      model: this.selectOptimalModel(options.style),
-      steps: this.getOptimalSteps(options.style),
-      guidanceScale: this.getOptimalGuidanceScale(options.style),
-      seed: options.seed,
-      negativePrompt: this.getDefaultNegativePrompt(),
-    };
-
     try {
-      const response = await this.sendTask(task);
+      console.log('📦 Importing AI SDK dependencies...');
+      const { experimental_generateImage: generateImage } = await import('ai' as any);
+      const { runware: runwareProvider } = await import('@runware/ai-sdk-provider' as any);
+      console.log('✅ AI SDK dependencies imported successfully');
       
-      if (!response.imageURL && !response.imageURLs?.[0]) {
-        throw new Error('No image URL in response');
+      const dimensions = options.dimensions || this.getFormatDimensions(options.canvasFormat);
+      console.log('📏 Resolved dimensions:', dimensions);
+      
+      const enhancedPrompt = this.enhancePromptForCarousel(prompt, options.style || 'realistic', options.canvasFormat);
+      console.log('🔧 Enhanced prompt:', enhancedPrompt);
+
+      const size = `${dimensions.width}x${dimensions.height}`;
+      const modelId = options.model || this.selectOptimalModel(options.style);
+      console.log(`🤖 Using model: ${modelId}, size: ${size}`);
+
+      const generationParams = {
+        model: runwareProvider.image(modelId),
+        prompt: enhancedPrompt,
+        size,
+        providerOptions: {
+          runware: {
+            steps: this.getOptimalSteps(options.style),
+            seed: options.seed,
+          },
+        },
+      };
+      console.log('🚀 Generation parameters:', generationParams);
+
+      console.log('⏳ Calling AI SDK generateImage...');
+      const result = await generateImage(generationParams as any);
+      console.log('📸 Raw AI SDK result:', result);
+
+      const imageUrl = (result as any)?.image?.url || (result as any)?.image;
+      console.log('🖼️ Extracted imageUrl:', imageUrl);
+
+      if (!imageUrl) {
+        console.error('❌ No image URL found in result:', result);
+        throw new Error('No image URL found in generation result');
       }
 
-      const imageUrl = response.imageURL || response.imageURLs![0];
-      
-      return {
+      const finalElement = {
         id: generateUUID(),
-        type: 'ai-image',
+        type: 'ai-image' as const,
         name: 'AI Generated Background',
-        duration: 5000, // 5 seconds default
+        duration: 5000,
         startTime: 0,
         trimStart: 0,
         trimEnd: 0,
@@ -192,28 +117,31 @@ export class RunwareService implements AIGenerationService {
         style: options.style || 'realistic',
         aspectRatio: dimensions.width / dimensions.height,
         aiMetadata: {
-          provider: 'runware',
-          model: options.model || 'civitai:4384@130072',
+          provider: 'runware' as const,
+          model: modelId,
           prompt,
           enhancedPrompt,
           generatedAt: new Date(),
-          generationTime: 0, // Will be set by API route
+          generationTime: 0,
+          cost: 0.05,
           parameters: {
-            steps: 25,
-            guidanceScale: 7.5,
+            steps: this.getOptimalSteps(options.style),
+            guidanceScale: this.getOptimalGuidanceScale(options.style),
             seed: options.seed,
             style: options.style,
           },
-          cost: response.cost || 0.05,
         },
         canvasFormat: options.canvasFormat,
         isRegeneratable: true,
         generationHistory: [],
       };
-
+      
+      console.log('✅ Final AIImageElement created:', finalElement);
+      return finalElement;
     } catch (error) {
-      console.error('Runware image generation failed:', error);
-      throw new Error(`Runware generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('❌ RunwareService.generateImage() failed:', error);
+      console.error('🔍 Error details:', error instanceof Error ? error.stack : 'No stack trace');
+      throw error;
     }
   }
 
@@ -222,21 +150,8 @@ export class RunwareService implements AIGenerationService {
   }
 
   async enhancePrompt(prompt: string): Promise<string> {
-    const task: RunwareTask = {
-      taskType: 'promptEnhancer',
-      taskUUID: generateUUID(),
-      prompt,
-      width: 1024, // Required for API
-      height: 1024, // Required for API
-    };
-
-    try {
-      const response = await this.sendTask(task);
-      return response.imageURL || prompt; // Return enhanced prompt or original
-    } catch (error) {
-      console.warn('Prompt enhancement failed, using original:', error);
-      return prompt;
-    }
+    // Simple pass-through – Vercel AI SDK path does not support WS enhancer
+    return prompt;
   }
 private enhancePromptForCarousel(prompt: string, style: string, canvasFormat: string): string {
     const baseEnhancement = this.enhancePromptForStyle(prompt, style);
@@ -295,19 +210,7 @@ private enhancePromptForCarousel(prompt: string, style: string, canvasFormat: st
     return 'blurry, low quality, distorted, deformed, watermark, text overlay, signature, amateur, ugly, bad anatomy, low resolution, pixelated';
   }
 
-  disconnect(): void {
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
-    
-    // Clear pending tasks
-    this.pendingTasks.forEach(({ reject, timeout }) => {
-      clearTimeout(timeout);
-      reject(new Error('Service disconnected'));
-    });
-    this.pendingTasks.clear();
-  }
+  disconnect(): void {}
 }
 
 // Export singleton instance

@@ -33,7 +33,7 @@ export default function RootLayout({
         <ThemeProvider attribute="class" defaultTheme="dark">
           <TooltipProvider>
             <StorageProvider>{children}</StorageProvider>
-            <Analytics />
+            {env.NODE_ENV === "production" && <Analytics />}
             <Toaster />
             <Script
               src="https://cdn.databuddy.cc/databuddy.js"

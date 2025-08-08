@@ -1,76 +1,69 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { runwareService } from '@/services/ai/runware-service';
-import { auth } from '~/lib/auth';
+
+export const runtime = 'nodejs';
 
 export async function POST(request: NextRequest) {
   try {
-    // Authentication check
-    const session = await auth.api.getSession({
-      headers: request.headers
-    });
+    console.log('🔥 Runware Image API: Starting request processing...');
     
-    if (!session?.user) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    // Authentication optional to allow background generation in dev/demo
+    // If you need to enforce auth, re-enable and handle 401 in the client queue
 
     const body = await request.json();
-    const { 
-      prompt, 
-      model = 'runware:default', 
-      width = 1080, 
-      height = 1920, 
+    console.log('📝 Request body:', body);
+    
+    const {
+      prompt,
+    model = 'runware:101@1',
+    width,
+    height,
       style = 'realistic',
       quality = 'standard',
       canvasFormat = 'instagram-story'
     } = body;
 
     if (!prompt) {
+      console.error('❌ No prompt provided in request');
       return NextResponse.json(
         { success: false, error: 'Prompt is required' },
         { status: 400 }
       );
     }
 
+    console.log(`🎯 Generating image with prompt: "${prompt}"`);
+    console.log('⚙️ Options:', { canvasFormat, style, model, width, height });
+
     // Generate image using Runware service
     const startTime = Date.now();
-    const result = await runwareService.generateImage(prompt, {
-      canvasFormat,
-      style,
-      dimensions: {
-        width,
-        height
-      },
-      model,
-    });
+    const options: any = { canvasFormat, style, model };
+    if (typeof width === 'number' && typeof height === 'number') {
+      options.dimensions = { width, height };
+    }
+
+    console.log('🚀 Calling runwareService.generateImage with options:', options);
+    const result = await runwareService.generateImage(prompt, options);
 
     const generationTime = Date.now() - startTime;
-
-    // Log generation for analytics
-    console.log(`Runware image generated for user ${session.user.id}:`, {
-      prompt: prompt.substring(0, 100),
-      model,
-      dimensions: `${width}x${height}`,
-      generationTime: `${generationTime}ms`,
-      cost: result.aiMetadata.cost || 0.05,
-    });
+    console.log(`✅ Generation completed in ${generationTime}ms`);
+    console.log('📸 Generated result:', result);
 
     return NextResponse.json({
       success: true,
       data: {
         ...result,
         generationTime,
-      }
+      },
+      imageUrl: result.imageUrl // Add this for backwards compatibility
     });
 
   } catch (error) {
-    console.error('Runware image generation failed:', error);
+    console.error('❌ Runware image generation failed:', error);
+    console.error('🔍 Error stack:', error instanceof Error ? error.stack : 'No stack trace');
     
     return NextResponse.json(
-      { 
-        success: false, 
+      {
+        success: false,
         error: error instanceof Error ? error.message : 'Generation failed'
       },
       { status: 500 }

@@ -509,6 +509,9 @@ export function PreviewPanel() {
               }}
             >
               {renderBlurBackground()}
+              {currentProject && isInstagramCarouselProject(currentProject) && (
+                <CanvasLoadingOverlay currentProject={currentProject} />
+              )}
               {activeElements.length === 0 ? (
                 <div className="absolute inset-0 flex items-center justify-center text-muted-foreground">
                   No elements at current time
@@ -532,7 +535,7 @@ export function PreviewPanel() {
           ) : null}
           
           {/* External Canvas Navigation - positioned outside preview area */}
-          {currentProject && isInstagramCarouselProject(currentProject) && hasAnyElements && (
+          {currentProject && isInstagramCarouselProject(currentProject) && (
             <CanvasNavigation position="external-bottom" />
           )}
 
@@ -820,6 +823,9 @@ function FullscreenPreview({
           }}
         >
           {renderBlurBackground()}
+          {currentProject && isInstagramCarouselProject(currentProject) && (
+            <CanvasLoadingOverlay currentProject={currentProject} variant="fullscreen" />
+          )}
           {activeElements.length === 0 ? (
             <div className="absolute inset-0 flex items-center justify-center text-white/60">
               No elements at current time
@@ -856,6 +862,44 @@ function FullscreenPreview({
           getTotalDuration={getTotalDuration}
         />
       </div>
+    </div>
+  );
+}
+
+function CanvasLoadingOverlay({
+  currentProject,
+  variant = "default",
+}: {
+  currentProject: any;
+  variant?: "default" | "fullscreen";
+}) {
+  const canvasLoadingStates = useCarouselStore((s) => s.canvasLoadingStates);
+  const activeCanvas = getActiveCanvas(currentProject);
+  if (!activeCanvas) return null;
+  const state = canvasLoadingStates[activeCanvas.id];
+  if (!state || (!state.hasPlaceholder && !state.isImageLoading && !state.isImageLoaded)) return null;
+
+  const showBar = state.isImageLoading || state.hasPlaceholder;
+  const progress = Math.max(0, Math.min(100, state.imageLoadProgress || 0));
+
+  return (
+    <div aria-hidden className="absolute inset-0 pointer-events-none">
+      {showBar && (
+        <div className={cn("absolute bottom-0 left-0 right-0 p-3", variant === "fullscreen" ? "pb-4" : "pb-3") }>
+          <div className="mx-auto w-2/3 max-w-[520px] bg-black/40 backdrop-blur-sm rounded-md border border-white/10 text-white px-3 py-2 shadow-sm">
+            <div className="flex items-center justify-between text-[11px] opacity-90">
+              <span>Generating background…</span>
+              <span>{progress}%</span>
+            </div>
+            <div className="mt-1 h-1.5 w-full rounded-full bg-white/20">
+              <div
+                className="h-1.5 rounded-full bg-white transition-[width] duration-300"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
