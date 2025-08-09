@@ -2,6 +2,9 @@ import { DraggableMediaItem } from "@/components/ui/draggable-item";
 import { TIMELINE_CONSTANTS } from "@/constants/timeline-constants";
 import { useTimelineStore } from "@/stores/timeline-store";
 import { type TextElement } from "@/types/timeline";
+import { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { useCarouselStore } from "@/stores/carousel";
 
 const textData: TextElement = {
   id: "default-text",
@@ -27,8 +30,30 @@ const textData: TextElement = {
 };
 
 export function TextView() {
+  const [templates, setTemplates] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Load templates JSON from public folder
+    fetch("/templates/brandsdecoded_ui_per_slide.json")
+      .then((r) => r.json())
+      .then((data) => setTemplates(Array.isArray(data.slides) ? data.slides : []))
+      .catch(() => setTemplates([]));
+  }, []);
+
+  const handleAddTemplate = (slide: any) => {
+    useCarouselStore.getState().addCanvasFromTemplate({
+      title: slide?.components?.find((c: any) => c.type === "headline")?.text || "Slide",
+      content: slide?.components?.find((c: any) => c.type === "body")?.text || "",
+      backgroundImage: slide?.image_ref || undefined,
+      backgroundPrompt: "Template background",
+    });
+  };
+
+  const templateItems = useMemo(() => templates.slice(0, 20), [templates]);
+
   return (
-    <div className="p-4">
+    <div className="p-4 space-y-4">
+      {/* Default text draggable */}
       <DraggableMediaItem
         name="Default text"
         preview={
@@ -48,6 +73,35 @@ export function TextView() {
         }
         showLabel={false}
       />
+
+      {/* Templates grid */}
+      {templateItems.length > 0 && (
+        <div className="grid grid-cols-2 gap-2">
+          {templateItems.map((slide, idx) => (
+            <DraggableMediaItem
+              key={slide.id || idx}
+              name={slide.id || `Template ${idx + 1}`}
+              preview={
+                <div className="relative w-full h-full">
+                  <Image
+                    src={typeof slide.image_ref === "string" ? slide.image_ref : "/open-graph/default.jpg"}
+                    alt={slide.id || `Template ${idx + 1}`}
+                    fill
+                    className="object-cover"
+                  />
+                </div>
+              }
+              dragData={{
+                type: "template-slide",
+                id: slide.id || `template_${idx}`,
+              }}
+              aspectRatio={1}
+              showLabel={false}
+              onAddToTimeline={() => handleAddTemplate(slide)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

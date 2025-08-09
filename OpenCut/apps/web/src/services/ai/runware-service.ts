@@ -1,7 +1,19 @@
 import { AIGenerationService } from './types';
 import { AIImageElement, AIImageGenerationOptions } from '@/types/ai-timeline';
 import { generateUUID } from '@/lib/utils';
-// Lazy import Vercel AI SDK provider at runtime to avoid type resolution issues during linting
+
+// Dynamic imports to avoid TypeScript issues at build time
+let runware: any;
+let generateImage: any;
+
+const initializeSDK = async () => {
+  if (!runware || !generateImage) {
+    const runwareModule = await import('@runware/ai-sdk-provider');
+    const aiModule = await import('ai');
+    runware = runwareModule.runware;
+    generateImage = aiModule.experimental_generateImage;
+  }
+};
 
 interface RunwareTask {
   taskType: string;
@@ -102,10 +114,13 @@ export class RunwareService implements AIGenerationService {
     console.log('⚙️ Input options:', options);
     
     try {
-      console.log('📦 Importing AI SDK dependencies...');
-      const { experimental_generateImage: generateImage } = await import('ai' as any);
-      const { runware: runwareProvider } = await import('@runware/ai-sdk-provider' as any);
-      console.log('✅ AI SDK dependencies imported successfully');
+      // Check environment variables first
+      const runwareApiKey = process.env.RUNWARE_API_KEY;
+      console.log('🔑 Runware API key configured:', !!runwareApiKey);
+      
+      if (!runwareApiKey) {
+        throw new Error('RUNWARE_API_KEY environment variable is not configured');
+      }
       
       // Get quality from options (default to 'high' for best results)
       const quality = (options as any).quality || 'high';
@@ -120,34 +135,50 @@ export class RunwareService implements AIGenerationService {
       const enhancedPrompt = this.enhancePromptForCarousel(prompt, options.style || 'realistic', options.canvasFormat);
       console.log('🔧 Enhanced prompt:', enhancedPrompt);
 
-      const size = `${generationDimensions.width}x${generationDimensions.height}`;
       const modelId = options.model || this.selectOptimalModel(options.style);
-      console.log(`🤖 Using model: ${modelId}, size: ${size}`);
+      console.log(`🤖 Using model: ${modelId}`);
 
-      const generationParams = {
-        model: runwareProvider.image(modelId),
+      const seed = options.seed || Math.floor(Math.random() * 1000000);
+      const steps = this.getOptimalSteps(options.style);
+      const cfgScale = this.getOptimalGuidanceScale(options.style);
+      
+      console.log('🚀 Using Runware AI SDK with parameters:', {
+        model: modelId,
         prompt: enhancedPrompt,
-        size,
-        providerOptions: {
-          runware: {
-            steps: this.getOptimalSteps(options.style),
-            seed: options.seed,
-          },
-        },
-      };
-      console.log('🚀 Generation parameters:', generationParams);
+        size: `${generationDimensions.width}x${generationDimensions.height}`,
+        seed,
+        steps,
+        cfgScale
+      });
 
-      console.log('⏳ Calling AI SDK generateImage...');
-      const result = await generateImage(generationParams as any);
-      console.log('📸 Raw AI SDK result:', result);
+      // Initialize SDK components
+      await initializeSDK();
 
-      const imageUrl = (result as any)?.image?.url || (result as any)?.image;
-      console.log('🖼️ Extracted imageUrl:', imageUrl);
+      // Use Runware AI SDK with proper configuration
+      const startTime = Date.now();
+      const result = await generateImage({
+        model: runware.image(modelId, {
+          steps,
+          CFGScale: cfgScale,
+          scheduler: 'DPM++ 2M Karras',
+          negativePrompt: this.getDefaultNegativePrompt(),
+        }),
+        prompt: enhancedPrompt,
+        size: `${generationDimensions.width}x${generationDimensions.height}` as any,
+        seed,
+      });
 
-      if (!imageUrl) {
-        console.error('❌ No image URL found in result:', result);
-        throw new Error('No image URL found in generation result');
+      const generationTime = Date.now() - startTime;
+      console.log(`✅ Generation completed in ${generationTime}ms`);
+      console.log('📸 Generated result:', result);
+
+      if (!result.image) {
+        throw new Error('No image returned from Runware AI SDK');
       }
+
+      // Convert the image buffer to a data URL for browser display
+      const imageUrl = `data:image/png;base64,${Buffer.from(result.image.uint8Array).toString('base64')}`;
+      console.log('🖼️ Generated image URL (base64 data URL)');
 
       const finalElement = {
         id: generateUUID(),
@@ -167,12 +198,12 @@ export class RunwareService implements AIGenerationService {
           prompt,
           enhancedPrompt,
           generatedAt: new Date(),
-          generationTime: 0,
-          cost: 0.05,
+          generationTime,
+          cost: 0.05, // Estimated cost
           parameters: {
-            steps: this.getOptimalSteps(options.style),
-            guidanceScale: this.getOptimalGuidanceScale(options.style),
-            seed: options.seed,
+            steps,
+            guidanceScale: cfgScale,
+            seed,
             style: options.style,
             quality, // Store the quality setting
           },
@@ -227,15 +258,15 @@ private enhancePromptForCarousel(prompt: string, style: string, canvasFormat: st
 
   private selectOptimalModel(style?: string): string {
     const modelMap: Record<string, string> = {
-      'realistic': 'flux-dev', // Flux Dev for realistic images
-      'artistic': 'flux-pro', // Flux Pro for artistic/creative content
-      'cinematic': 'flux-pro', // Flux Pro for cinematic quality
-      'minimalist': 'flux-dev', // Flux Dev works well for clean designs
+      'realistic': 'runware:100@1', // Flux Dev for realistic images
+      'artistic': 'runware:101@1', // Flux Pro for artistic/creative content
+      'cinematic': 'runware:101@1', // Flux Pro for cinematic quality
+      'minimalist': 'runware:100@1', // Flux Dev works well for clean designs
       'vintage': 'civitai:4201@128713', // DreamShaper for vintage styles
-      'abstract': 'flux-schnell', // Flux Schnell for abstract/quick generations
+      'abstract': 'runware:102@1', // Flux Schnell for abstract/quick generations
     };
 
-    return modelMap[style || 'realistic'] || 'flux-dev';
+    return modelMap[style || 'realistic'] || 'runware:100@1';
   }
 
   private getOptimalSteps(style?: string): number {

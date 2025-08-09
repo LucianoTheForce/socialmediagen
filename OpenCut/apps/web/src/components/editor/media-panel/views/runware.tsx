@@ -51,9 +51,9 @@ interface RunwareGeneration {
 }
 
 const RUNWARE_MODELS = [
-  { value: 'flux-dev', label: 'Flux Dev', description: 'Latest Flux model (recommended)' },
-  { value: 'flux-pro', label: 'Flux Pro', description: 'High-quality Flux model' },
-  { value: 'flux-schnell', label: 'Flux Schnell', description: 'Fast Flux model' },
+  { value: 'runware:100@1', label: 'Flux Dev', description: 'Latest Flux model (recommended)' },
+  { value: 'runware:101@1', label: 'Flux Pro', description: 'High-quality Flux model' },
+  { value: 'runware:102@1', label: 'Flux Schnell', description: 'Fast Flux model' },
   { value: 'civitai:4384@130072', label: 'Realistic Vision', description: 'Photorealistic images' },
   { value: 'civitai:4201@128713', label: 'DreamShaper', description: 'Artistic and creative' },
   { value: 'civitai:43331@132760', label: 'Cinematic', description: 'Movie-like imagery' }
@@ -85,7 +85,7 @@ const CANVAS_FORMATS = [
 
 export function RunwareView() {
   const [prompt, setPrompt] = useState('');
-  const [selectedModel, setSelectedModel] = useState('flux-dev');
+  const [selectedModel, setSelectedModel] = useState('runware:100@1');
   const [selectedStyle, setSelectedStyle] = useState('realistic');
   const [selectedFormat, setSelectedFormat] = useState('instagram-story');
   const [selectedQuality, setSelectedQuality] = useState<'high' | 'medium' | 'fast'>('high');

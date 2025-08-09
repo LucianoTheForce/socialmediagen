@@ -1,0 +1,249 @@
+{
+  "version": "1.1",
+  "description": "JSON da UI de cada imagem (carrossel 9:16) — zonas normalizadas, cores estimadas e tipografia sugerida.",
+  "palette": {
+    "orange": "#FF3B00",
+    "deep_brown": "#3B1F1A",
+    "cream": "#FFF5D9",
+    "near_black": "#111111",
+    "white": "#FFFFFF",
+    "accent_red": "#E43A19",
+    "maroon": "#6C2B22"
+  },
+  "typography": {
+    "headline_family": [
+      "Helvetica Now Display Black",
+      "Neue Haas Grotesk Black",
+      "Inter Black"
+    ],
+    "body_family": [
+      "Inter",
+      "Helvetica Now Text",
+      "Neue Haas Grotesk Text"
+    ],
+    "headline_weight": 900,
+    "body_weight": 600
+  },
+  "slides": [
+    {
+      "id": "slide_01",
+      "image_ref": "/open-graph/default.jpg",
+      "background": "#FF3B00",
+      "components": [
+        {
+          "type": "headline",
+          "bbox": { "x": 0.05, "y": 0.05, "w": 0.9, "h": 0.28, "align": "left" },
+          "text": "O ALGORITMO NÃO IMPÕE UM GOSTO — ELE REPETE ATÉ QUE VOCÊ ACREDITE QUE ESCOLHEU.",
+          "style": {
+            "family": [
+              "Helvetica Now Display Black",
+              "Neue Haas Grotesk Black",
+              "Inter Black"
+            ],
+            "weight": 900,
+            "size_vmin": 8.6,
+            "line_height": 0.95,
+            "tracking": -20,
+            "case": "upper",
+            "color": "#FFFFFF"
+          }
+        },
+        {
+          "type": "image",
+          "bbox": { "x": 0.05, "y": 0.36, "w": 0.9, "h": 0.38, "align": "left" },
+          "fit": "cover",
+          "notes": "Placeholder: corredor tecnológico / servidores."
+        },
+        {
+          "type": "body",
+          "bbox": { "x": 0.05, "y": 0.8, "w": 0.9, "h": 0.14, "align": "left" },
+          "text": "A estética que te “representa” foi entregue antes que você pudesse desejar. E quando todos acessam os mesmos signos visuais, o gosto deixa de distinguir e começa a homogeneizar.",
+          "style": {
+            "family": [
+              "Inter",
+              "Helvetica Now Text",
+              "Neue Haas Grotesk Text"
+            ],
+            "weight": 600,
+            "size_vmin": 3.2,
+            "line_height": 1.05,
+            "color": "#111111",
+            "highlights": { "color": "#E43A19" }
+          }
+        }
+      ]
+    },
+    {
+      "id": "slide_02",
+      "image_ref": "/open-graph/roadmap.jpg",
+      "background": "#FF3B00",
+      "components": [
+        { "type": "image", "bbox": { "x": 0.05, "y": 0.05, "w": 0.9, "h": 0.58, "align": "left" }, "fit": "cover", "notes": "Placeholder: retrato frontal com objeto e mascote." },
+        {
+          "type": "headline",
+          "bbox": { "x": 0.05, "y": 0.68, "w": 0.9, "h": 0.22, "align": "left" },
+          "text": "VOCÊ REALMENTE TEM GOSTO PRÓPRIO... OU SÓ ESTÁ SEGUINDO O ALGORITMO?",
+          "style": {
+            "family": [
+              "Helvetica Now Display Black",
+              "Neue Haas Grotesk Black",
+              "Inter Black"
+            ],
+            "weight": 900,
+            "size_vmin": 7.6,
+            "line_height": 0.95,
+            "tracking": -18,
+            "case": "upper",
+            "color": "#3B1F1A"
+          }
+        },
+        {
+          "type": "body",
+          "bbox": { "x": 0.05, "y": 0.9, "w": 0.9, "h": 0.08, "align": "left" },
+          "text": "Você já percebeu como os grandes fenômenos culturais desapareceram? Não é só você. Algo muito maior está acontecendo: a internet matou o mainstream da forma como conhecíamos.",
+          "style": {
+            "family": [
+              "Inter",
+              "Helvetica Now Text",
+              "Neue Haas Grotesk Text"
+            ],
+            "weight": 500,
+            "size_vmin": 3.0,
+            "line_height": 1.05,
+            "color": "#FFFFFF",
+            "highlights": { "color": "#E43A19" }
+          }
+        }
+      ]
+    },
+    {
+      "id": "slide_03",
+      "image_ref": "/open-graph/default.jpg",
+      "background": "#3B1F1A",
+      "components": [
+        { "type": "image", "bbox": { "x": 0.05, "y": 0.05, "w": 0.9, "h": 0.46, "align": "left" }, "fit": "cover", "notes": "Placeholder: faces coloridas lado a lado." },
+        {
+          "type": "headline",
+          "bbox": { "x": 0.05, "y": 0.56, "w": 0.9, "h": 0.22, "align": "left" },
+          "text": "DURANTE DÉCADAS, O GOSTO ERA UMA ESPÉCIE DE IMPRESSÃO DIGITAL CULTURAL: ÚNICO, LENTO, MOLDADO POR EXPERIÊNCIAS, REFERÊNCIAS E CONTEXTO.",
+          "style": {
+            "family": [
+              "Helvetica Now Display Black",
+              "Neue Haas Grotesk Black",
+              "Inter Black"
+            ],
+            "weight": 900,
+            "size_vmin": 7.2,
+            "line_height": 0.96,
+            "tracking": -16,
+            "case": "upper",
+            "color": "#FF3B00"
+          }
+        },
+        {
+          "type": "body",
+          "bbox": { "x": 0.05, "y": 0.8, "w": 0.9, "h": 0.14, "align": "left" },
+          "text": "Mas hoje, basta um scroll para sermos expostos a mil estéticas em segundos. O que era construção virou reflexo automático. E o pior: parece natural.",
+          "style": {
+            "family": [
+              "Inter",
+              "Helvetica Now Text",
+              "Neue Haas Grotesk Text"
+            ],
+            "weight": 600,
+            "size_vmin": 3.0,
+            "line_height": 1.06,
+            "color": "#FFFFFF",
+            "highlights": { "color": "#FF3B00" }
+          }
+        }
+      ]
+    },
+    {
+      "id": "slide_04",
+      "image_ref": "/open-graph/roadmap.jpg",
+      "background": null,
+      "components": [
+        { "type": "image", "bbox": { "x": 0.0, "y": 0.0, "w": 1.0, "h": 1.0, "align": "left" }, "fit": "cover" },
+        {
+          "type": "badge",
+          "bbox": { "x": 0.08, "y": 0.62, "w": 0.3, "h": 0.05, "align": "left" },
+          "text": "POWERED BY BRANDSDECODED®",
+          "style": { "family": ["Inter", "Helvetica Now Text", "Neue Haas Grotesk Text"], "weight": 700, "size_vmin": 2.4, "case": "upper", "color": "#FFFFFF" }
+        },
+        {
+          "type": "headline",
+          "bbox": { "x": 0.08, "y": 0.68, "w": 0.84, "h": 0.24, "align": "left" },
+          "text": "A Morte do Gosto Pessoal: Como a Dopamina Digital Nos Tornou Indiferentes",
+          "style": { "family": ["Editorial New", "Georgia", "Libre Baskerville"], "weight": 600, "size_vmin": 6.2, "line_height": 1.1, "tracking": 0, "case": "title", "color": "#FFFFFF", "shadow": { "blur": 12, "opacity": 0.35 } }
+        }
+      ]
+    },
+    {
+      "id": "slide_05",
+      "image_ref": "/open-graph/default.jpg",
+      "background": "#FFF5D9",
+      "components": [
+        {
+          "type": "headline",
+          "bbox": { "x": 0.05, "y": 0.05, "w": 0.9, "h": 0.24, "align": "left" },
+          "text": "O TikTok decide o que é “cool”. O Pinterest te serve variações de uma mesma estética. O Instagram homogeneíza. Resultado?",
+          "style": { "family": ["Helvetica Now Display Black", "Neue Haas Grotesk Black", "Inter Black"], "weight": 900, "size_vmin": 7.6, "line_height": 1.04, "tracking": -14, "case": "sentence", "color": "#E43A19" }
+        },
+        { "type": "image", "bbox": { "x": 0.0, "y": 0.32, "w": 1.0, "h": 0.48, "align": "left" }, "fit": "cover" },
+        { "type": "body", "bbox": { "x": 0.05, "y": 0.84, "w": 0.9, "h": 0.1, "align": "left" }, "text": "Gente vestida igual, falando igual, querendo se diferenciar... fazendo exatamente o mesmo.", "style": { "family": ["Inter", "Helvetica Now Text", "Neue Haas Grotesk Text"], "weight": 600, "size_vmin": 3.0, "line_height": 1.06, "color": "#FFFFFF" } }
+      ]
+    },
+    {
+      "id": "slide_06",
+      "image_ref": "/open-graph/roadmap.jpg",
+      "background": null,
+      "components": [
+        { "type": "image", "bbox": { "x": 0.0, "y": 0.0, "w": 1.0, "h": 1.0, "align": "left" }, "fit": "cover" },
+        { "type": "headline", "bbox": { "x": 0.1, "y": 0.42, "w": 0.8, "h": 0.18, "align": "center" }, "text": "Segundo a Vogue Business, 70% da Gen Z diz que os algoritmos facilitam a descoberta de estilo.", "style": { "family": ["Helvetica Now Display Black", "Neue Haas Grotesk Black", "Inter Black"], "weight": 800, "size_vmin": 5.4, "line_height": 1.05, "color": "#FFFFFF", "align": "center" } },
+        { "type": "body", "bbox": { "x": 0.18, "y": 0.78, "w": 0.64, "h": 0.1, "align": "center" }, "text": "O algoritmo nos poupa do esforço, oferecendo o que já foi validado. Mas ao eliminar a escolha, dissolve também a autoria. Faz sentido?", "style": { "family": ["Inter", "Helvetica Now Text", "Neue Haas Grotesk Text"], "weight": 600, "size_vmin": 2.8, "line_height": 1.06, "color": "#FFFFFF" } }
+      ]
+    },
+    {
+      "id": "slide_07",
+      "image_ref": "/open-graph/default.jpg",
+      "background": "#3B1F1A",
+      "components": [
+        { "type": "headline", "bbox": { "x": 0.1, "y": 0.18, "w": 0.8, "h": 0.28, "align": "center" }, "text": "Resgatar o gosto é reintroduzir silêncio na equação. É criar distância entre o estímulo e a resposta.", "style": { "family": ["Inter", "Helvetica Now Text", "Neue Haas Grotesk Text"], "weight": 700, "size_vmin": 5.0, "line_height": 1.12, "color": "#FF3B00" } },
+        { "type": "body", "bbox": { "x": 0.08, "y": 0.64, "w": 0.84, "h": 0.2, "align": "left" }, "text": "Ouvir um disco inteiro sem pular. Ir ao cinema sem abrir o celular. Combinar roupas sem buscar referência. O gosto pede risco. E nenhum algoritmo pode prever o que ainda não foi vivido.", "style": { "family": ["Inter", "Helvetica Now Text", "Neue Haas Grotesk Text"], "weight": 600, "size_vmin": 3.0, "line_height": 1.1, "color": "#FFFFFF", "highlights": { "color": "#FF3B00" } } }
+      ]
+    },
+    {
+      "id": "slide_08",
+      "image_ref": "/open-graph/roadmap.jpg",
+      "background": "#FFFFFF",
+      "components": [
+        { "type": "image", "bbox": { "x": 0.05, "y": 0.05, "w": 0.9, "h": 0.48, "align": "left" }, "fit": "cover" },
+        { "type": "headline", "bbox": { "x": 0.05, "y": 0.58, "w": 0.9, "h": 0.2, "align": "left" }, "text": "A MODA CONTEMPORÂNEA VIROU UM CATÁLOGO DE MICROIDENTIDADES PRONTAS PARA USO:", "style": { "family": ["Helvetica Now Display Black", "Neue Haas Grotesk Black", "Inter Black"], "weight": 900, "size_vmin": 6.6, "line_height": 1.02, "case": "upper", "color": "#3B1F1A" } },
+        { "type": "body", "bbox": { "x": 0.05, "y": 0.8, "w": 0.9, "h": 0.14, "align": "left" }, "text": "\"Clean girl\", \"eclectic grandpa\", \"vanilla core\". Rótulos que prometem autenticidade, mas entregam padronização simbólica.", "style": { "family": ["Inter", "Helvetica Now Text", "Neue Haas Grotesk Text"], "weight": 600, "size_vmin": 3.0, "line_height": 1.06, "color": "#E43A19" } }
+      ]
+    },
+    {
+      "id": "slide_09",
+      "image_ref": "/open-graph/default.jpg",
+      "background": null,
+      "components": [
+        { "type": "image", "bbox": { "x": 0.0, "y": 0.0, "w": 1.0, "h": 1.0, "align": "left" }, "fit": "cover" },
+        { "type": "headline", "bbox": { "x": 0.1, "y": 0.62, "w": 0.8, "h": 0.22, "align": "center" }, "text": "Inspirado no artigo “How the algorithm is killing personal taste”, do The Times.", "style": { "family": ["Inter", "Helvetica Now Text", "Neue Haas Grotesk Text"], "weight": 800, "size_vmin": 4.8, "line_height": 1.1, "color": "#FFFFFF" } },
+        { "type": "cta", "bbox": { "x": 0.1, "y": 0.76, "w": 0.8, "h": 0.1, "align": "center" }, "text": "Comente “framework” para ter acesso ao meu sistema de criação de conteúdo.", "style": { "family": ["Inter", "Helvetica Now Text", "Neue Haas Grotesk Text"], "weight": 600, "size_vmin": 3.0, "line_height": 1.06, "color": "#FFFFFF" } }
+      ]
+    },
+    {
+      "id": "slide_10",
+      "image_ref": "/open-graph/roadmap.jpg",
+      "background": "#FFF5D9",
+      "components": [
+        { "type": "headline", "bbox": { "x": 0.06, "y": 0.05, "w": 0.88, "h": 0.24, "align": "left" }, "text": "Talvez o gosto nunca tenha morrido. Só ficou em coma, dopado por dopamina.", "style": { "family": ["Helvetica Now Display Black", "Neue Haas Grotesk Black", "Inter Black"], "weight": 900, "size_vmin": 7.2, "line_height": 1.04, "color": "#E43A19" } },
+        { "type": "image", "bbox": { "x": 0.05, "y": 0.34, "w": 0.9, "h": 0.46, "align": "left" }, "fit": "cover" },
+        { "type": "body", "bbox": { "x": 0.06, "y": 0.84, "w": 0.88, "h": 0.1, "align": "left" }, "text": "Mas ele pode acordar — e tudo começa com uma pergunta incômoda e libertadora: Você realmente gosta disso... ou só está acostumado?", "style": { "family": ["Inter", "Helvetica Now Text", "Neue Haas Grotesk Text"], "weight": 600, "size_vmin": 3.0, "line_height": 1.06, "color": "#FFFFFF" } }
+      ]
+    }
+  ]
+}
+
+

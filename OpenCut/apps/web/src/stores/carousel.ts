@@ -83,6 +83,7 @@ export interface CarouselStore {
   // Canvas Management
   setActiveCanvas: (canvasId: string) => void;
   addCanvas: (position?: number) => void;
+  addCanvasFromTemplate: (slideData: any, position?: number) => void;
   removeCanvas: (canvasId: string) => void;
   updateCanvas: (canvasId: string, updates: Partial<InstagramCarouselCanvas>) => void;
   reorderCanvases: (fromIndex: number, toIndex: number) => void;
@@ -254,6 +255,62 @@ export const useCarouselStore = create<CarouselStore>()(
             },
             false,
             'addCanvas'
+          );
+        },
+
+        // Add a new canvas using provided slide data (title/content/backgroundImage...)
+        addCanvasFromTemplate: (slideData, position) => {
+          set(
+            (state) => {
+              if (!state.currentProject) return state;
+
+              try {
+                // Create a new canvas from slideData
+                const newSlideNumber = state.currentProject.canvases.length + 1;
+                const newCanvas = createCarouselCanvas(slideData, newSlideNumber, true);
+
+                const insertPosition =
+                  position !== undefined ? position : state.currentProject.canvases.length;
+
+                const updatedCanvases = [...state.currentProject.canvases];
+                updatedCanvases.splice(insertPosition, 0, newCanvas);
+
+                // Renumber and set active
+                updatedCanvases.forEach((canvas, index) => {
+                  canvas.slideMetadata.slideNumber = index + 1;
+                  canvas.isActive = canvas.id === newCanvas.id;
+                });
+
+                const updatedProject: InstagramCarouselProject = {
+                  ...state.currentProject,
+                  canvases: updatedCanvases,
+                  carouselMetadata: {
+                    ...state.currentProject.carouselMetadata,
+                    slideCount: updatedCanvases.length,
+                  },
+                  updatedAt: new Date(),
+                };
+
+                // Ensure new canvas has an empty timeline
+                const timelineStore = useTimelineStore.getState();
+                timelineStore.createCanvasTimeline(newCanvas.id);
+                timelineStore.switchToCanvas(newCanvas.id);
+
+                return {
+                  currentProject: updatedProject,
+                  navigation: {
+                    ...state.navigation,
+                    activeCanvasId: newCanvas.id,
+                    canvasOrder: updatedProject.canvases.map((c) => c.id),
+                  },
+                };
+              } catch (error) {
+                console.error('Failed to add canvas from template:', error);
+                return state;
+              }
+            },
+            false,
+            'addCanvasFromTemplate'
           );
         },
 

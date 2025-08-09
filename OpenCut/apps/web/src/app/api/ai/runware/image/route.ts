@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     
     const {
       prompt,
-      model = 'flux-dev',
+      model = 'runware:100@1',
       width,
       height,
       style = 'realistic',
