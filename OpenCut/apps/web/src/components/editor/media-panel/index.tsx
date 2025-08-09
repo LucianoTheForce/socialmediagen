@@ -4,6 +4,8 @@ import { TabBar } from "./tabbar";
 import { MediaView } from "./views/media";
 import { useMediaPanelStore, Tab } from "./store";
 import { TextView } from "./views/text";
+// eslint-disable-next-line import/no-unresolved
+import TemplatesView from "./views/templates";
 import { SoundsView } from "./views/sounds";
 import { CarouselView } from "./views/carousel";
 import { RunwareView } from "./views/runware";
@@ -17,6 +19,7 @@ export function MediaPanel() {
     media: <MediaView />,
     sounds: <SoundsView />,
     text: <TextView />,
+    templates: <TemplatesView />,
     stickers: (
       <div className="p-4 text-muted-foreground">
         Stickers view coming soon...
@@ -56,7 +59,7 @@ export function MediaPanel() {
     <div className="h-full flex bg-panel">
       <TabBar />
       <Separator orientation="vertical" />
-      <div className="flex-1 overflow-hidden">{viewMap[activeTab]}</div>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">{viewMap[activeTab]}</div>
     </div>
   );
 }

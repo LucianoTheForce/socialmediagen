@@ -18,6 +18,17 @@ export interface MediaFileData {
   width?: number;
   height?: number;
   duration?: number;
+  // AI-generated carousel properties
+  isAIGenerated?: boolean;
+  carouselMetadata?: {
+    carouselId: string;
+    canvasId: string;
+    slideNumber: number;
+    generationPrompt: string;
+    backgroundStrategy: 'unique' | 'thematic';
+    generatedAt: string; // ISO string for serialization
+    aiMetadata?: any;
+  };
   // File will be stored separately in OPFS
 }
 

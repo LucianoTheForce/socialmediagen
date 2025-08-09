@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
         );
         
         const thematicImage = await imageService.generateImage(thematicPrompt, {
-          dimensions: { width: 1080, height: 1080 },
+          dimensions: { width: 1080, height: 1350 },
           style: 'realistic',
           canvasFormat: 'instagram-post'
         });
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
         for (const bgPrompt of backgroundPrompts) {
           try {
             const imageResult = await imageService.generateImage(bgPrompt, {
-              dimensions: { width: 1080, height: 1080 },
+              dimensions: { width: 1080, height: 1350 },
               style: 'realistic',
               canvasFormat: 'instagram-post'
             });

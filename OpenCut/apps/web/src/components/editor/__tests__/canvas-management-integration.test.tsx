@@ -25,7 +25,7 @@ const mockCanvas = {
   format: {
     id: 'instagram-post',
     name: 'Instagram Post',
-    dimensions: { width: 1080, height: 1080 }
+   dimensions: { width: 1080, height: 1350 }
   },
   slideMetadata: {
     title: 'Test Canvas 1',
@@ -36,7 +36,7 @@ const mockCanvas = {
   isActive: true,
   position: { x: 0, y: 0 },
   fill: { enabled: true, color: '#000000' },
-  customSize: { width: 1080, height: 1080 },
+ customSize: { width: 1080, height: 1350 },
   duration: 5
 };
 
@@ -97,7 +97,7 @@ describe('Canvas Management Integration Tests', () => {
 
     // Mock editor store
     (useEditorStore as any).mockReturnValue({
-      canvasSize: { width: 1080, height: 1080 },
+     canvasSize: { width: 1080, height: 1350 },
       setCanvasSize: mockSetCanvasSize
     });
 

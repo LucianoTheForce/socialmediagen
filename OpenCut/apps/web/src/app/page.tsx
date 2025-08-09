@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 
 export default async function Home() {
   return (
-    <div>
+    <div className="bg-black">
       <Header />
       <Hero />
       <Footer />

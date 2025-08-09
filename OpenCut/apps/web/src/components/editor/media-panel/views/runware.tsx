@@ -36,6 +36,11 @@ import {
 import { cn } from '@/lib/utils';
 import { useCurrentProject } from '@/stores/carousel';
 import { storageService } from '@/lib/storage/storage-service';
+import { useTimelineStore } from '@/stores/timeline-store';
+import { useMediaStore, type MediaItem } from '@/stores/media-store';
+import { usePlaybackStore } from '@/stores/playback-store';
+import { toast } from 'sonner';
+import { generateUUID } from '@/lib/utils';
 import dayjs from 'dayjs';
 
 interface RunwareGeneration {
@@ -75,7 +80,7 @@ const RESOLUTION_QUALITIES = [
 ] as const;
 
 const CANVAS_FORMATS = [
-  { value: 'instagram-post', label: 'Instagram Post', dimensions: '1080x1080' },
+  { value: 'instagram-post', label: 'Instagram Post', dimensions: '1080x1350' },
   { value: 'instagram-story', label: 'Instagram Story', dimensions: '1080x1920' },
   { value: 'facebook-post', label: 'Facebook Post', dimensions: '1200x630' },
   { value: 'twitter-post', label: 'Twitter Post', dimensions: '1600x900' },
@@ -94,6 +99,9 @@ export function RunwareView() {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const currentProject = useCurrentProject();
+  const timelineStore = useTimelineStore();
+  const mediaStore = useMediaStore();
+  const playbackStore = usePlaybackStore();
 
   // Load project-specific generations on mount
   useEffect(() => {
@@ -231,9 +239,51 @@ export function RunwareView() {
     // TODO: Show success toast
   };
 
-  const handleUseInProject = (generation: RunwareGeneration) => {
-    // TODO: Implement adding image to current canvas or timeline
-    console.log('Using generation in project:', generation);
+  const handleUseInProject = async (generation: RunwareGeneration) => {
+    if (!currentProject?.id) {
+      console.error('No current project available');
+      toast.error('No project selected');
+      return;
+    }
+
+    try {
+      console.log('🔍 Adding generation to project:', generation);
+      
+      // Fetch the image and convert to File object
+      const response = await fetch(generation.imageUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image: ${response.statusText}`);
+      }
+      
+      const blob = await response.blob();
+      const file = new File([blob], `runware-${generation.id}.jpg`, { type: 'image/jpeg' });
+      
+      // Add to media store first and get the created item directly
+      const mediaItem = await mediaStore.addMediaItem(currentProject.id, {
+        name: `Runware: ${generation.prompt.slice(0, 50)}...`,
+        type: 'image',
+        file,
+        url: URL.createObjectURL(file),
+        width: generation.dimensions.width,
+        height: generation.dimensions.height,
+        isAIGenerated: true,
+      });
+
+      console.log('✅ Media item created:', mediaItem);
+
+      // Get current timeline and playhead position
+      const currentTime = playbackStore.currentTime;
+      
+      // Add to timeline at current playhead position
+      timelineStore.addMediaAtTime(mediaItem, currentTime);
+      
+      console.log('✅ Image added to timeline at', currentTime);
+      toast.success('Image added to timeline');
+      
+    } catch (error) {
+      console.error('❌ Failed to add image to project:', error);
+      toast.error('Failed to add image to timeline');
+    }
   };
 
   return (

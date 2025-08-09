@@ -21,7 +21,7 @@ export function HeaderBase({
   // If children is provided, render it directly without the grid layout
   if (children) {
     return (
-      <header className={cn("px-6 h-16 flex items-center", className)}>
+      <header className={cn("px-6 h-16 flex items-center relative z-30", className)}>
         {children}
       </header>
     );
@@ -29,7 +29,7 @@ export function HeaderBase({
 
   return (
     <header
-      className={cn("px-6 h-14 flex justify-between items-center", className)}
+      className={cn("px-6 h-14 flex justify-between items-center relative z-30", className)}
     >
       {leftContent && <div className="flex items-center">{leftContent}</div>}
       {centerContent && (

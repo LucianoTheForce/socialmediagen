@@ -26,6 +26,66 @@ interface ActiveElement {
   mediaItem: MediaItem | null;
 }
 
+// Helper function to generate correct object-fit and object-position CSS classes
+function getObjectFitClasses(
+  objectFit: string | undefined,
+  alignment: { horizontal?: string; vertical?: string } | undefined
+): string {
+  const fit = objectFit || 'cover';
+  let classes = '';
+
+  // Apply object-fit class
+  switch (fit) {
+    case 'cover':
+      classes += 'object-cover';
+      break;
+    case 'contain':
+      classes += 'object-contain';
+      break;
+    case 'fill':
+      classes += 'object-fill';
+      break;
+    case 'none':
+      classes += 'object-none';
+      break;
+    case 'scale-down':
+      classes += 'object-scale-down';
+      break;
+    default:
+      classes += 'object-cover'; // fallback
+  }
+
+  // Apply object-position classes only when they make sense with the object-fit mode
+  // Object positioning only works with cover, contain, none, and scale-down
+  if (fit === 'cover' || fit === 'contain' || fit === 'none' || fit === 'scale-down') {
+    const horizontal = alignment?.horizontal || 'center';
+    const vertical = alignment?.vertical || 'middle';
+
+    // Generate object-position class based on alignment
+    if (vertical === 'top' && horizontal === 'center') {
+      classes += ' object-top';
+    } else if (vertical === 'bottom' && horizontal === 'center') {
+      classes += ' object-bottom';
+    } else if (vertical === 'middle' && horizontal === 'left') {
+      classes += ' object-left';
+    } else if (vertical === 'middle' && horizontal === 'right') {
+      classes += ' object-right';
+    } else if (vertical === 'top' && horizontal === 'left') {
+      classes += ' object-left-top';
+    } else if (vertical === 'top' && horizontal === 'right') {
+      classes += ' object-right-top';
+    } else if (vertical === 'bottom' && horizontal === 'left') {
+      classes += ' object-left-bottom';
+    } else if (vertical === 'bottom' && horizontal === 'right') {
+      classes += ' object-right-bottom';
+    } else {
+      classes += ' object-center'; // default center positioning
+    }
+  }
+
+  return classes;
+}
+
 export function PreviewPanel() {
   const { tracks, getTotalDuration, updateTextElement, selectedElements } = useTimelineStore();
   const { mediaItems } = useMediaStore();
@@ -166,6 +226,7 @@ export function PreviewPanel() {
       const deltaX = e.clientX - dragState.startX;
       const deltaY = e.clientY - dragState.startY;
 
+      // Fixed pixel layout: render at canvas pixel size, scaled uniformly to preview
       const scaleRatio = previewDimensions.width / canvasSize.width;
       const newX = dragState.initialElementX + deltaX / scaleRatio;
       const newY = dragState.initialElementY + deltaY / scaleRatio;
@@ -408,8 +469,8 @@ export function PreviewPanel() {
               padding: "4px 8px",
               borderRadius: "2px",
               whiteSpace: useFixedBox ? "pre-wrap" : "pre-wrap",
-              width: useFixedBox ? `${element.boxWidth}px` : "auto",
-              height: useFixedBox ? `${element.boxHeight}px` : "auto",
+              width: useFixedBox ? `${element.boxWidth}px` : undefined,
+              height: useFixedBox ? `${element.boxHeight}px` : undefined,
               display: useFixedBox ? "flex" : undefined,
               alignItems: useFixedBox
                 ? element.verticalAlign === "top"
@@ -477,7 +538,9 @@ export function PreviewPanel() {
               className="relative"
               style={{
                 borderRadius: element.borderRadius ? `${element.borderRadius}px` : undefined,
-                overflow: element.borderRadius ? 'hidden' : 'visible',
+                overflow: 'hidden',
+                width: element.boxWidth ? `${element.boxWidth}px` : undefined,
+                height: element.boxHeight ? `${element.boxHeight}px` : undefined,
               }}
             >
               <VideoPlayer
@@ -487,12 +550,7 @@ export function PreviewPanel() {
                 trimStart={element.trimStart}
                 trimEnd={element.trimEnd}
                 clipDuration={element.duration}
-                className={`w-full h-full ${element.objectFit === 'cover' ? 'object-cover' :
-                           element.objectFit === 'fill' ? 'object-fill' : 'object-contain'}
-                           ${element.alignment?.vertical === 'top' && element.alignment?.horizontal === 'center' ? 'object-top' :
-                             element.alignment?.vertical === 'bottom' && element.alignment?.horizontal === 'center' ? 'object-bottom' :
-                             element.alignment?.horizontal === 'left' && element.alignment?.vertical === 'middle' ? 'object-left' :
-                             element.alignment?.horizontal === 'right' && element.alignment?.vertical === 'middle' ? 'object-right' : 'object-center'}`}
+                className={`w-full h-full ${getObjectFitClasses(element.objectFit, element.alignment)}`}
               />
             </div>
           </div>

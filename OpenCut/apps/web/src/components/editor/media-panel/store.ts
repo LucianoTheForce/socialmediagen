@@ -19,6 +19,7 @@ export type Tab =
   | "media"
   | "sounds"
   | "text"
+  | "templates"
   | "stickers"
   | "effects"
   | "transitions"
@@ -41,6 +42,10 @@ export const tabs: { [key in Tab]: { icon: LucideIcon; label: string } } = {
   text: {
     icon: TypeIcon,
     label: "Text",
+  },
+  templates: {
+    icon: Layers,
+    label: "Templates",
   },
   stickers: {
     icon: StickerIcon,

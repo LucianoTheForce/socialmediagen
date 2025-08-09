@@ -26,6 +26,7 @@ interface EditorState {
 const DEFAULT_CANVAS_PRESETS: CanvasPreset[] = [
   { name: "16:9", width: 1920, height: 1080 },
   { name: "9:16", width: 1080, height: 1920 },
+  { name: "4:5", width: 1080, height: 1350 },
   { name: "1:1", width: 1080, height: 1080 },
   { name: "4:3", width: 1440, height: 1080 },
 ];
@@ -68,7 +69,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // Initial states
   isInitializing: true,
   isPanelsReady: false,
-  canvasSize: { width: 1920, height: 1080 }, // Default 16:9 HD
+  canvasSize: { width: 1080, height: 1350 }, // Default 4:5 for Instagram posts
   canvasMode: "preset" as CanvasMode,
   canvasPresets: DEFAULT_CANVAS_PRESETS,
 
@@ -85,11 +86,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     console.log("Initializing video editor...");
     set({ isInitializing: true, isPanelsReady: false });
 
-    // Auto-create carousel project if none exists
+    // Auto-create project only if explicitly requested elsewhere; avoid using persisted state
     const carouselStore = useCarouselStore.getState();
     if (!carouselStore.currentProject) {
-      console.log("No project found, auto-creating carousel project...");
-      carouselStore.createEmptyProject();
+      console.log("No project loaded. Editor is ready to create a new project from Templates or Carousel tab.");
     }
 
     set({ isPanelsReady: true, isInitializing: false });

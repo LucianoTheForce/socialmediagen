@@ -21,6 +21,9 @@ export interface MediaElement extends BaseTimelineElement {
   // Visual properties
   x: number; // Position relative to canvas center
   y: number; // Position relative to canvas center
+  // Optional fixed box sizing (in canvas pixels)
+  boxWidth?: number;
+  boxHeight?: number;
   scaleX: number; // Horizontal scale (1.0 = 100%)
   scaleY: number; // Vertical scale (1.0 = 100%)
   rotation: number; // Rotation in degrees

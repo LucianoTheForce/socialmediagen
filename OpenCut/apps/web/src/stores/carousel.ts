@@ -127,6 +127,7 @@ export interface CarouselStore {
   regenerateSlide: (canvasId: string, newPrompt?: string) => Promise<void>;
   duplicateCanvas: (canvasId: string) => void;
   createEmptyProject: (name?: string) => InstagramCarouselProject;
+  createProjectWithAllTemplates: (name?: string) => Promise<InstagramCarouselProject>;
   
   // State Reset
   reset: () => void;
@@ -295,6 +296,165 @@ export const useCarouselStore = create<CarouselStore>()(
                 const timelineStore = useTimelineStore.getState();
                 timelineStore.createCanvasTimeline(newCanvas.id);
                 timelineStore.switchToCanvas(newCanvas.id);
+
+                // Map JSON components (bbox normalized) to timeline elements when available
+                const dim = newCanvas.format.dimensions;
+                const vmin = Math.min(dim.width, dim.height); // for size_vmin
+                const normToCanvas = (n: number, isX: boolean) => n * (isX ? dim.width : dim.height);
+                const centerFromBBox = (bbox: any) => ({
+                  x: normToCanvas(bbox.x + bbox.w / 2, true) - dim.width / 2,
+                  y: normToCanvas(bbox.y + bbox.h / 2, false) - dim.height / 2,
+                  boxWidth: normToCanvas(bbox.w, true),
+                  boxHeight: normToCanvas(bbox.h, false),
+                });
+
+                const addTextFromComponent = (comp: any, fallbackName: string) => {
+                  const textTrackId = timelineStore.findOrCreateTrack('text');
+                  const { x, y, boxWidth, boxHeight } = centerFromBBox(comp.bbox);
+                  const style = comp.style || {};
+                  const fontPx = Math.round(((style.size_vmin ?? 4) / 100) * vmin);
+                  const weight = (style.weight ?? 400) >= 700 ? 'bold' : 'normal';
+                  const color = style.color || '#FFFFFF';
+                  const align = (comp.bbox?.align || 'left') as 'left' | 'center' | 'right';
+                  timelineStore.addElementToTrack(textTrackId, {
+                    type: 'text',
+                    name: `${fallbackName} - Slide ${newSlideNumber}`,
+                    content: comp.text || '',
+                    duration: 5000,
+                    startTime: 0,
+                    trimStart: 0,
+                    trimEnd: 0,
+                    fontSize: fontPx,
+                    fontFamily: Array.isArray(style.family) && style.family[0] ? style.family[0] : 'Inter',
+                    color,
+                    backgroundColor: 'transparent',
+                    textAlign: align,
+                    fontWeight: weight,
+                    fontStyle: 'normal',
+                    textDecoration: 'none',
+                    x,
+                    y,
+                    rotation: 0,
+                    opacity: 1,
+                    boxMode: 'fixed',
+                    boxWidth,
+                    boxHeight,
+                    verticalAlign: 'middle',
+                  });
+                };
+
+                // Prioritize template components if available, fallback to simple title/content
+                const componentsToProcess = slideData.components || [];
+                console.log(`🎨 Processing ${componentsToProcess.length} components for slide ${newSlideNumber}`);
+
+                if (Array.isArray(componentsToProcess) && componentsToProcess.length > 0) {
+                  componentsToProcess.forEach((comp: any, idx: number) => {
+                    console.log(`📝 Processing component ${idx + 1}: ${comp.type}`);
+                    if (comp.type === 'headline') addTextFromComponent(comp, 'Headline');
+                    if (comp.type === 'body') addTextFromComponent(comp, 'Body');
+                    if (comp.type === 'cta' || comp.type === 'badge') addTextFromComponent(comp, 'Text');
+                    // Skip image components - no placeholders will be added
+                    if (comp.type === 'image') {
+                      console.log(`🖼️ Skipping image placeholder for component ${idx + 1}`);
+                    }
+                  });
+                  console.log(`✅ Successfully processed ${componentsToProcess.length} template components (text only)`);
+                } else {
+                  // Fallback simple title/body
+                  const textTrackId = timelineStore.findOrCreateTrack('text');
+                  if (slideData.title) {
+                    timelineStore.addElementToTrack(textTrackId, {
+                      type: 'text',
+                      name: `Title - Slide ${newSlideNumber}`,
+                      content: slideData.title,
+                      duration: 5000,
+                      startTime: 0,
+                      trimStart: 0,
+                      trimEnd: 0,
+                      fontSize: 44,
+                      fontFamily: 'Inter',
+                      color: '#FFFFFF',
+                      backgroundColor: 'transparent',
+                      textAlign: 'center',
+                      fontWeight: 'bold',
+                      fontStyle: 'normal',
+                      textDecoration: 'none',
+                      x: 0,
+                      y: -300,
+                      rotation: 0,
+                      opacity: 1,
+                      boxMode: 'auto',
+                    });
+                  }
+                  if (slideData.content) {
+                    timelineStore.addElementToTrack(textTrackId, {
+                      type: 'text',
+                      name: `Content - Slide ${newSlideNumber}`,
+                      content: slideData.content,
+                      duration: 5000,
+                      startTime: 0,
+                      trimStart: 0,
+                      trimEnd: 0,
+                      fontSize: 24,
+                      fontFamily: 'Inter',
+                      color: '#E5E5E5',
+                      backgroundColor: 'transparent',
+                      textAlign: 'center',
+                      fontWeight: 'normal',
+                      fontStyle: 'normal',
+                      textDecoration: 'none',
+                      x: 0,
+                      y: 20,
+                      rotation: 0,
+                      opacity: 1,
+                      boxMode: 'auto',
+                    });
+                  }
+                }
+
+                // If template provides a background image URL, add it to media store and timeline (async but fire-and-forget)
+                if (slideData.backgroundImage) {
+                  const projectId = state.currentProject.id;
+                  const mediaStore = useMediaStore.getState();
+                  const addBackground = async () => {
+                    try {
+                      const item = await mediaStore.addAIGeneratedImage(projectId, slideData.backgroundImage, {
+                        name: `Template BG Slide ${newSlideNumber}`,
+                        carouselId: state.currentProject!.id,
+                        canvasId: newCanvas.id,
+                        slideNumber: newSlideNumber,
+                        generationPrompt: slideData.backgroundPrompt || 'Template background',
+                        backgroundStrategy: 'unique',
+                        aiMetadata: undefined,
+                      });
+                      const mediaTrackId = timelineStore.findOrCreateTrack('media');
+                      timelineStore.addElementToTrack(mediaTrackId, {
+                        type: 'media',
+                        mediaId: item.id,
+                        name: 'Background',
+                        duration: 5000,
+                        startTime: 0,
+                        trimStart: 0,
+                        trimEnd: 0,
+                        x: 0,
+                        y: 0,
+                        scaleX: 1,
+                        scaleY: 1,
+                        rotation: 0,
+                        opacity: 1,
+                        objectFit: 'cover',
+                        alignment: { horizontal: 'center', vertical: 'middle' },
+                        flipHorizontal: false,
+                        flipVertical: false,
+                        borderRadius: 0,
+                      });
+                    } catch (e) {
+                      console.error('Failed to add template background to timeline:', e);
+                    }
+                  };
+                  // Detach
+                  addBackground();
+                }
 
                 return {
                   currentProject: updatedProject,
@@ -1338,12 +1498,13 @@ export const useCarouselStore = create<CarouselStore>()(
             'clearForNewProject'
           );
 
-          const projectName = name || `Instagram Carousel ${new Date().toLocaleDateString()}`;
-          const emptyProject = createInstagramCarouselProject(
-            projectName,
-            'current-user',
-            {} // Empty data - will create default canvas
-          );
+           // Generate a guaranteed-unique project id suffix to avoid reusing storage buckets
+           const projectName = name || `Instagram Carousel ${new Date().toLocaleDateString()}`;
+           const emptyProject = createInstagramCarouselProject(
+             projectName,
+             `user-${Date.now()}`,
+             {}
+           );
 
           console.log('✅ Created new empty Instagram carousel project:', emptyProject);
 
@@ -1369,6 +1530,53 @@ export const useCarouselStore = create<CarouselStore>()(
           return emptyProject;
         },
 
+        // Create Instagram Carousel Project with All Templates Pre-loaded
+        createProjectWithAllTemplates: async (name?: string) => {
+          console.log('🚀 Creating carousel project with all templates...');
+          
+          // First create an empty project
+          const projectName = name || `Carousel com Todos os Templates ${new Date().toLocaleDateString()}`;
+          const project = get().createEmptyProject(projectName);
+          
+          try {
+            // Load templates from the JSON file
+            const response = await fetch('/templates/brandsdecoded_ui_per_slide.json');
+            const templatesData = await response.json();
+            const slides = templatesData.slides || [];
+            
+            console.log(`📝 Loading ${slides.length} templates into project...`);
+            
+            // Remove the default empty canvas first
+            if (project.canvases.length > 0) {
+              get().removeCanvas(project.canvases[0].id);
+            }
+            
+            // Add all template slides to the project
+            slides.forEach((slide: any, index: number) => {
+              const title = slide.components?.find((c: any) => c.type === "headline")?.text ?? `Slide ${index + 1}`;
+              const content = slide.components?.find((c: any) => c.type === "body")?.text ?? "";
+              
+              console.log(`🎨 Adding template ${index + 1}/${slides.length}: "${title}"`);
+              
+              get().addCanvasFromTemplate({
+                title,
+                content,
+                backgroundImage: slide.image_ref,
+                backgroundPrompt: "Template background",
+                components: slide.components,
+              });
+            });
+            
+            console.log(`✅ Successfully created carousel project with ${slides.length} templates`);
+            return project;
+            
+          } catch (error) {
+            console.error('Failed to load templates:', error);
+            // Return the empty project as fallback
+            return project;
+          }
+        },
+
         // State Reset
         reset: () => {
           set(
@@ -1389,6 +1597,7 @@ export const useCarouselStore = create<CarouselStore>()(
       {
         name: 'carousel-store',
         partialize: (state) => ({
+          // Do NOT persist currentProject to avoid loading content from a previous session
           recentProjects: state.recentProjects,
           navigation: {
             thumbnailSize: state.navigation.thumbnailSize,

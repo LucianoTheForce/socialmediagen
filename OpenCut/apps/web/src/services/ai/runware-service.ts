@@ -1,4 +1,4 @@
-import { AIGenerationService } from './types';
+ import { AIGenerationService } from './types';
 import { AIImageElement, AIImageGenerationOptions } from '@/types/ai-timeline';
 import { generateUUID } from '@/lib/utils';
 
@@ -44,7 +44,7 @@ export class RunwareService implements AIGenerationService {
   private getCanvasDimensions(format: string): { width: number; height: number } {
     const formats: Record<string, { width: number; height: number }> = {
       'instagram-story': { width: 1080, height: 1920 },
-      'instagram-post': { width: 1080, height: 1080 },
+      'instagram-post': { width: 1080, height: 1350 },
       'instagram-reel': { width: 1080, height: 1920 },
       'tiktok': { width: 1080, height: 1920 },
       'facebook-post': { width: 1920, height: 1080 },

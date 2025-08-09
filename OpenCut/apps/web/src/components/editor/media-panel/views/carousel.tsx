@@ -6,7 +6,24 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Wand2, Loader2, Images, Palette, AlertCircle, Plus } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import {
+  Wand2,
+  Loader2,
+  Images,
+  Palette,
+  AlertCircle,
+  Plus,
+  Sparkles,
+  Target,
+  Layout,
+  Settings,
+  Lightbulb,
+  Zap,
+  Camera
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCarouselStore, useGenerationProgress } from "@/stores/carousel";
 import { CarouselGenerationOptions } from "@/types/ai-timeline";
@@ -64,6 +81,7 @@ export function CarouselView() {
   const generationProgress = useGenerationProgress();
 
   const handleCreateEmpty = () => {
+    // Now explicitly creates an empty project on user action (no auto-initialization)
     createEmptyProject();
   };
 
@@ -135,258 +153,380 @@ export function CarouselView() {
   };
 
   return (
-    <div className="p-4 space-y-6">
-      {/* Header */}
-      <div className="space-y-2">
-        <div className="flex items-center gap-2">
-          <Wand2 className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-semibold">Instagram Carousel Generator</h2>
+    <div className="p-4 space-y-6 max-w-full">
+      {/* Modern Header */}
+      <div className="text-center space-y-4">
+        <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary/20 to-primary/10 mb-4">
+          <Sparkles className="h-8 w-8 text-primary" />
         </div>
-        <p className="text-sm text-muted-foreground">
-          Generate AI-powered Instagram carousels with custom content and backgrounds
-        </p>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="space-y-3 p-4 bg-muted/30 rounded-md">
-        <Label className="text-sm font-medium">Quick Actions</Label>
-        <Button
-          onClick={handleCreateEmpty}
-          variant="outline"
-          className="w-full"
-          disabled={generationProgress.isGenerating}
-        >
-          <Plus className="h-4 w-4" />
-          Create Empty Carousel Project
-        </Button>
-        <p className="text-xs text-muted-foreground">
-          Start with a blank canvas and manually add content using the canvas management tools
-        </p>
-      </div>
-
-      {/* Prompt Input */}
-      <div className="space-y-3">
-        <Label htmlFor="carousel-prompt" className="text-sm font-medium">
-          Carousel Prompt
-        </Label>
-        <Textarea
-          id="carousel-prompt"
-          placeholder="Describe your Instagram carousel... (e.g., '5 tips for better photography with minimalist backgrounds')"
-          value={prompt}
-          onChange={handlePromptChange}
-          className="min-h-[100px] resize-none"
-          disabled={generationProgress.isGenerating}
-        />
-        <p className="text-xs text-muted-foreground">
-          Pro tip: Mention the number of slides in your prompt to automatically set the canvas count
-          {parsePromptForCanvasCount(prompt) && (
-            <span className="text-primary font-medium"> • Auto-detected: {parsePromptForCanvasCount(prompt)} canvases</span>
-          )}
-        </p>
-      </div>
-
-      {/* Canvas Count Selector */}
-      <div className="space-y-3">
-        <Label className="text-sm font-medium">Canvas Count</Label>
-        <Select
-          value={canvasCount}
-          onValueChange={handleCanvasCountChange}
-          disabled={generationProgress.isGenerating}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Select number of canvases" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="2">2 canvases</SelectItem>
-            <SelectItem value="3">3 canvases</SelectItem>
-            <SelectItem value="4">4 canvases</SelectItem>
-            <SelectItem value="5">5 canvases</SelectItem>
-            <SelectItem value="6">6 canvases</SelectItem>
-            <SelectItem value="7">7 canvases</SelectItem>
-            <SelectItem value="8">8 canvases</SelectItem>
-            <SelectItem value="9">9 canvases</SelectItem>
-            <SelectItem value="10">10 canvases</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Image Provider Selector */}
-      <div className="space-y-3">
-        <Label className="text-sm font-medium">Image Generation Provider</Label>
-        <RadioGroup
-          value={imageProvider}
-          onValueChange={(value) => setImageProvider(value as "runware")}
-          className="grid grid-cols-1 gap-4"
-          disabled={generationProgress.isGenerating}
-        >
-          <div className="flex items-center space-x-3 rounded-md border p-3 hover:bg-accent/50 transition-colors">
-            <RadioGroupItem value="runware" id="runware" />
-            <div className="flex-1">
-              <label
-                htmlFor="runware"
-                className="cursor-pointer flex items-center gap-2 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                <Wand2 className="h-4 w-4" />
-                Runware AI
-              </label>
-              <p className="text-xs text-muted-foreground mt-1">
-                Fast, high-quality image generation optimized for social media
-              </p>
-            </div>
-          </div>
-        </RadioGroup>
-      </div>
-
-      {/* Background Strategy */}
-      <div className="space-y-3">
-        <Label className="text-sm font-medium">Background Strategy</Label>
-        <RadioGroup
-          value={backgroundStrategy}
-          onValueChange={(value) => setBackgroundStrategy(value as BackgroundStrategy)}
-          className="grid grid-cols-1 gap-4"
-          disabled={generationProgress.isGenerating}
-        >
-          <div className="flex items-center space-x-3 rounded-md border p-3 hover:bg-accent/50 transition-colors">
-            <RadioGroupItem value="unique" id="unique" />
-            <div className="flex-1">
-              <label
-                htmlFor="unique"
-                className="cursor-pointer flex items-center gap-2 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                <Images className="h-4 w-4" />
-                Unique Backgrounds
-              </label>
-              <p className="text-xs text-muted-foreground mt-1">
-                Generate completely different backgrounds for each canvas
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-3 rounded-md border p-3 hover:bg-accent/50 transition-colors">
-            <RadioGroupItem value="thematic" id="thematic" />
-            <div className="flex-1">
-              <label
-                htmlFor="thematic"
-                className="cursor-pointer flex items-center gap-2 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-              >
-                <Palette className="h-4 w-4" />
-                Thematic Backgrounds
-              </label>
-              <p className="text-xs text-muted-foreground mt-1">
-                Create cohesive backgrounds with consistent style and color palette
-              </p>
-            </div>
-          </div>
-        </RadioGroup>
-      </div>
-
-      {/* Layout Preset */}
-      <div className="space-y-3">
-        <Label className="text-sm font-medium">Layout Preset</Label>
-        <Select
-          value={layoutPreset}
-          onValueChange={setLayoutPreset}
-          disabled={generationProgress.isGenerating}
-        >
-          <SelectTrigger className="w-full">
-            <SelectValue placeholder="Choose a layout preset" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="jitter-mobile-showreel">Jitter Mobile Showreel</SelectItem>
-            <SelectItem value="minimal-clean">Minimal Clean</SelectItem>
-          </SelectContent>
-        </Select>
-        <p className="text-xs text-muted-foreground">Applies corner rounding and pagination similar to Jitter mobile showreel.</p>
-      </div>
-
-      {/* Generation Progress */}
-      {generationProgress.isGenerating && (
-        <div className="space-y-3 p-4 bg-accent/30 rounded-md border">
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm font-medium">Generating Carousel</span>
-            {generationProgress.totalSlides && (
-              <span className="text-xs text-muted-foreground">
-                ({generationProgress.currentSlide || 1}/{generationProgress.totalSlides})
-              </span>
-            )}
-          </div>
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>
-                {generationProgress.currentStep === 'text' && 'Generating content structure...'}
-                {generationProgress.currentStep === 'images' && 'Creating backgrounds...'}
-                {generationProgress.currentStep === 'canvases' && 'Building carousel canvases...'}
-                {generationProgress.currentStep === 'complete' && 'Carousel completed!'}
-              </span>
-              <span>{Math.round(generationProgress.totalProgress)}%</span>
-            </div>
-            <div className="w-full bg-secondary rounded-full h-2">
-              <div
-                className="bg-primary h-2 rounded-full transition-all duration-300"
-                style={{ width: `${generationProgress.totalProgress}%` }}
-              />
-            </div>
-            {generationProgress.estimatedTimeRemaining && (
-              <div className="text-xs text-muted-foreground text-center">
-                Est. {Math.ceil(generationProgress.estimatedTimeRemaining / 1000)}s remaining
-              </div>
-            )}
-          </div>
+        <div className="space-y-2">
+          <h1 className="text-3xl font-bold tracking-tight">Instagram Carousel Generator</h1>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Transform your ideas into engaging Instagram carousels with AI-powered content and stunning visuals
+          </p>
         </div>
-      )}
+        <div className="flex items-center justify-center gap-4">
+          <Badge variant="secondary" className="px-3 py-1">
+            <Zap className="h-3 w-3 mr-1" />
+            AI-Powered
+          </Badge>
+          <Badge variant="secondary" className="px-3 py-1">
+            <Camera className="h-3 w-3 mr-1" />
+            Instagram Ready
+          </Badge>
+        </div>
+      </div>
 
-      {/* Error Display */}
-      {generationProgress.error && !generationProgress.isGenerating && (
-        <div className="space-y-2 p-4 bg-destructive/10 border border-destructive/20 rounded-md">
-          <div className="flex items-center gap-2 text-destructive">
-            <AlertCircle className="h-4 w-4" />
-            <span className="text-sm font-medium">Generation Failed</span>
-          </div>
-          <p className="text-sm text-muted-foreground">{generationProgress.error}</p>
+      {/* Quick Actions Card */}
+      <Card className="border-dashed">
+        <CardHeader className="pb-4">
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Plus className="h-5 w-5 text-primary" />
+            Quick Start
+          </CardTitle>
+          <CardDescription>
+            Jump right in with a blank canvas or generate AI content
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
           <Button
-            onClick={() => resetGeneration()}
+            onClick={handleCreateEmpty}
             variant="outline"
-            size="sm"
-            className="mt-2"
+            className="w-full h-12 text-base"
+            disabled={generationProgress.isGenerating}
           >
-            Try Again
+            <Plus className="h-4 w-4 mr-2" />
+            Create Empty Carousel Project
           </Button>
-        </div>
-      )}
+          <p className="text-sm text-muted-foreground mt-3 text-center">
+            Start with a blank canvas and manually design your carousel
+          </p>
+        </CardContent>
+      </Card>
 
-      {/* Generate Button */}
-      <Button
-        onClick={handleGenerate}
-        disabled={!prompt.trim() || generationProgress.isGenerating}
-        className="w-full"
-        size="lg"
-      >
-        {generationProgress.isGenerating ? (
-          <>
-            <Loader2 className="h-4 w-4 animate-spin" />
-            {generationProgress.currentStep === 'text' && 'Analyzing content...'}
-            {generationProgress.currentStep === 'images' && 'Generating images...'}
-            {generationProgress.currentStep === 'canvases' && 'Creating canvases...'}
-            {generationProgress.currentStep === 'complete' && 'Finalizing...'}
-            {!generationProgress.currentStep && 'Generating...'}
-          </>
-        ) : (
-          <>
-            <Wand2 className="h-4 w-4" />
-            Generate Instagram Carousel
-          </>
+      <Separator className="my-8" />
+
+      {/* Main Generation Form */}
+      <div className="space-y-8">
+        {/* Content Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5 text-primary" />
+              Content & Topic
+            </CardTitle>
+            <CardDescription>
+              Describe your carousel content and let AI create the structure
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-3">
+              <Label htmlFor="carousel-prompt" className="text-base font-medium">
+                What's your carousel about?
+              </Label>
+              <Textarea
+                id="carousel-prompt"
+                placeholder="e.g., '5 photography tips for beginners with clean, minimal backgrounds' or '7 ways to boost productivity with modern, colorful visuals'"
+                value={prompt}
+                onChange={handlePromptChange}
+                className="min-h-[120px] resize-none text-base leading-relaxed"
+                disabled={generationProgress.isGenerating}
+              />
+              <div className="flex items-center gap-2 text-sm">
+                <Lightbulb className="h-4 w-4 text-amber-500" />
+                <span className="text-muted-foreground">
+                  Pro tip: Mention the number of slides to auto-detect canvas count
+                  {parsePromptForCanvasCount(prompt) && (
+                    <Badge variant="outline" className="ml-2 text-primary border-primary/50">
+                      Auto-detected: {parsePromptForCanvasCount(prompt)} slides
+                    </Badge>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <Label className="text-base font-medium">Number of Slides</Label>
+              <Select
+                value={canvasCount}
+                onValueChange={handleCanvasCountChange}
+                disabled={generationProgress.isGenerating}
+              >
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Select number of slides" />
+                </SelectTrigger>
+                <SelectContent>
+                  {Array.from({ length: 9 }, (_, i) => i + 2).map((num) => (
+                    <SelectItem key={num} value={num.toString()}>
+                      {num} slides
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Visual Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5 text-primary" />
+              Visual Style
+            </CardTitle>
+            <CardDescription>
+              Customize the look and feel of your carousel backgrounds
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Image Provider */}
+            <div className="space-y-4">
+              <Label className="text-base font-medium">Image Generation Engine</Label>
+              <div className="grid gap-3">
+                <div className="flex items-center space-x-4 rounded-lg border-2 border-primary/20 bg-primary/5 p-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-2 h-2 rounded-full bg-primary"></div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <Wand2 className="h-4 w-4 text-primary" />
+                        <span className="font-medium">Runware AI</span>
+                        <Badge variant="secondary" className="text-xs">Recommended</Badge>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        Lightning-fast, premium quality images optimized for social media
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Background Strategy */}
+            <div className="space-y-4">
+              <Label className="text-base font-medium">Background Approach</Label>
+              <RadioGroup
+                value={backgroundStrategy}
+                onValueChange={(value) => setBackgroundStrategy(value as BackgroundStrategy)}
+                className="grid grid-cols-1 gap-4"
+                disabled={generationProgress.isGenerating}
+              >
+                <div className={cn(
+                  "flex items-center space-x-4 rounded-lg border-2 p-4 transition-all cursor-pointer hover:border-primary/50",
+                  backgroundStrategy === "unique" ? "border-primary bg-primary/5" : "border-border hover:bg-accent/50"
+                )}>
+                  <RadioGroupItem value="unique" id="unique" />
+                  <div className="flex-1">
+                    <label
+                      htmlFor="unique"
+                      className="cursor-pointer flex items-center gap-2 font-medium leading-none"
+                    >
+                      <Images className="h-4 w-4 text-blue-500" />
+                      Unique Backgrounds
+                    </label>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      Each slide gets a completely different background for maximum variety and visual interest
+                    </p>
+                  </div>
+                </div>
+                <div className={cn(
+                  "flex items-center space-x-4 rounded-lg border-2 p-4 transition-all cursor-pointer hover:border-primary/50",
+                  backgroundStrategy === "thematic" ? "border-primary bg-primary/5" : "border-border hover:bg-accent/50"
+                )}>
+                  <RadioGroupItem value="thematic" id="thematic" />
+                  <div className="flex-1">
+                    <label
+                      htmlFor="thematic"
+                      className="cursor-pointer flex items-center gap-2 font-medium leading-none"
+                    >
+                      <Palette className="h-4 w-4 text-purple-500" />
+                      Cohesive Theme
+                    </label>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      All slides share a consistent style and color palette for a unified, professional look
+                    </p>
+                  </div>
+                </div>
+              </RadioGroup>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Layout Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Layout className="h-5 w-5 text-primary" />
+              Layout & Design
+            </CardTitle>
+            <CardDescription>
+              Choose how your content will be arranged and presented
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <Label className="text-base font-medium">Layout Style</Label>
+              <Select
+                value={layoutPreset}
+                onValueChange={setLayoutPreset}
+                disabled={generationProgress.isGenerating}
+              >
+                <SelectTrigger className="h-12">
+                  <SelectValue placeholder="Choose a layout preset" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="jitter-mobile-showreel">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                      Jitter Mobile Showreel
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="minimal-clean">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                      Minimal Clean
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                Professional layouts with corner rounding and smooth pagination effects
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Generation Progress */}
+        {generationProgress.isGenerating && (
+          <Card className="border-primary/20 bg-primary/5">
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <div className="flex-1">
+                    <span className="font-medium">Creating your carousel...</span>
+                    {generationProgress.totalSlides && (
+                      <span className="text-sm text-muted-foreground ml-2">
+                        Slide {generationProgress.currentSlide || 1} of {generationProgress.totalSlides}
+                      </span>
+                    )}
+                  </div>
+                  <Badge variant="outline" className="text-primary border-primary/50">
+                    {Math.round(generationProgress.totalProgress)}%
+                  </Badge>
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>
+                      {generationProgress.currentStep === 'text' && '🔍 Analyzing and structuring content...'}
+                      {generationProgress.currentStep === 'images' && '🎨 Generating stunning backgrounds...'}
+                      {generationProgress.currentStep === 'canvases' && '🚀 Assembling your carousel...'}
+                      {generationProgress.currentStep === 'complete' && '✨ Carousel ready!'}
+                    </span>
+                  </div>
+                  <div className="w-full bg-secondary rounded-full h-2">
+                    <div
+                      className="bg-gradient-to-r from-primary to-primary/80 h-2 rounded-full transition-all duration-500"
+                      style={{ width: `${generationProgress.totalProgress}%` }}
+                    />
+                  </div>
+                  {generationProgress.estimatedTimeRemaining && (
+                    <div className="text-center">
+                      <Badge variant="secondary" className="text-xs">
+                        ~{Math.ceil(generationProgress.estimatedTimeRemaining / 1000)}s remaining
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         )}
-      </Button>
 
-      {/* Usage Tips */}
-      <div className="space-y-3 p-4 bg-muted/30 rounded-md">
-        <h3 className="text-sm font-medium">Usage Tips</h3>
-        <ul className="text-xs text-muted-foreground space-y-1">
-          <li>• Be specific about your content (tips, facts, steps, etc.)</li>
-          <li>• Mention style preferences (minimalist, colorful, professional)</li>
-          <li>• Include your target audience context</li>
-          <li>• Specify if you want text overlay or clean backgrounds</li>
-        </ul>
+        {/* Error Display */}
+        {generationProgress.error && !generationProgress.isGenerating && (
+          <Card className="border-destructive/20 bg-destructive/5">
+            <CardContent className="pt-6">
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-destructive">
+                  <AlertCircle className="h-5 w-5" />
+                  <span className="font-medium text-lg">Oops! Something went wrong</span>
+                </div>
+                <p className="text-muted-foreground">{generationProgress.error}</p>
+                <Button
+                  onClick={() => resetGeneration()}
+                  variant="outline"
+                  className="border-destructive/20 hover:bg-destructive/10"
+                >
+                  <Wand2 className="h-4 w-4 mr-2" />
+                  Try Again
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Generate Button */}
+        <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-primary/10 border-primary/20">
+          <CardContent className="pt-6">
+            <Button
+              onClick={handleGenerate}
+              disabled={!prompt.trim() || generationProgress.isGenerating}
+              className="w-full h-14 text-lg font-medium bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary shadow-lg"
+              size="lg"
+            >
+              {generationProgress.isGenerating ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  {generationProgress.currentStep === 'text' && 'Analyzing content...'}
+                  {generationProgress.currentStep === 'images' && 'Creating visuals...'}
+                  {generationProgress.currentStep === 'canvases' && 'Building carousel...'}
+                  {generationProgress.currentStep === 'complete' && 'Almost done...'}
+                  {!generationProgress.currentStep && 'Generating...'}
+                </>
+              ) : (
+                <>
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  Generate Instagram Carousel
+                </>
+              )}
+            </Button>
+          </CardContent>
+        </Card>
+
+        {/* Pro Tips */}
+        <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-amber-200 dark:border-amber-800">
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2 text-amber-800 dark:text-amber-200">
+              <Lightbulb className="h-5 w-5" />
+              Pro Tips for Better Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-amber-700 dark:text-amber-300">
+              <div className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 flex-shrink-0"></div>
+                  <span>Be specific about your content type (tips, steps, facts, etc.)</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 flex-shrink-0"></div>
+                  <span>Include style preferences (minimalist, vibrant, professional)</span>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 flex-shrink-0"></div>
+                  <span>Mention your target audience for better content</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-2 flex-shrink-0"></div>
+                  <span>Specify visual preferences for backgrounds</span>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

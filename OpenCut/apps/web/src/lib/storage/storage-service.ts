@@ -166,6 +166,11 @@ class StorageService {
       width: mediaItem.width,
       height: mediaItem.height,
       duration: mediaItem.duration,
+      isAIGenerated: mediaItem.isAIGenerated,
+      carouselMetadata: mediaItem.carouselMetadata ? {
+        ...mediaItem.carouselMetadata,
+        generatedAt: mediaItem.carouselMetadata.generatedAt.toISOString(), // Serialize Date to string
+      } : undefined,
     };
 
     await mediaMetadataAdapter.set(mediaItem.id, metadata);
@@ -197,6 +202,11 @@ class StorageService {
       width: metadata.width,
       height: metadata.height,
       duration: metadata.duration,
+      isAIGenerated: metadata.isAIGenerated,
+      carouselMetadata: metadata.carouselMetadata ? {
+        ...metadata.carouselMetadata,
+        generatedAt: new Date(metadata.carouselMetadata.generatedAt), // Deserialize string to Date
+      } : undefined,
       // thumbnailUrl would need to be regenerated or cached separately
     };
   }

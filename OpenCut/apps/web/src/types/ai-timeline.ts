@@ -125,9 +125,9 @@ export const CANVAS_FORMATS: CanvasFormat[] = [
   {
     id: 'instagram-post',
     name: 'Instagram Post',
-    displayName: 'Instagram Post (1:1)',
-    dimensions: { width: 1080, height: 1080 },
-    aspectRatio: 1,
+    displayName: 'Instagram Post (4:5)',
+    dimensions: { width: 1080, height: 1350 },
+    aspectRatio: 4/5,
     platform: 'instagram',
     category: 'post',
     description: 'Square format for Instagram feed posts'
@@ -531,12 +531,9 @@ export const createCarouselCanvas = (
       trimStart: 0,
       trimEnd: 5000,
       imageUrl: slideData.backgroundImage,
-      dimensions: {
-        width: 1080,
-        height: 1080
-      },
+      dimensions: getCanvasFormatById('instagram-post')!.dimensions,
       style: 'background',
-      aspectRatio: 1,
+      aspectRatio: getCanvasFormatById('instagram-post')!.aspectRatio,
       canvasFormat: 'instagram-post',
       isRegeneratable: true,
       generationHistory: [],
@@ -546,7 +543,7 @@ export const createCarouselCanvas = (
         prompt: slideData.backgroundPrompt || `Background for ${slideData.title}`,
         generatedAt: now,
         generationTime: 3000,
-        parameters: { style: 'realistic', dimensions: '1080x1080' },
+        parameters: { style: 'realistic', dimensions: '1080x1350' },
         cost: 0.04
       }
     };
