@@ -5,6 +5,7 @@ import {
   CreateTimelineElement,
   TimelineTrack,
   TextElement,
+  MediaElement,
   DragData,
   sortTracksByOrder,
   ensureMainTrack,
@@ -215,6 +216,11 @@ interface TimelineStore {
         | "verticalAlign"
       >
     >
+  ) => void;
+  updateMediaElement: (
+    trackId: string,
+    elementId: string,
+    updates: Partial<MediaElement>
   ) => void;
   checkElementOverlap: (
     trackId: string,
@@ -925,6 +931,24 @@ export const useTimelineStore = create<TimelineStore>((set, get) => {
       );
     },
 
+    updateMediaElement: (trackId, elementId, updates) => {
+      get().pushHistory();
+      updateTracksAndSave(
+        get()._tracks.map((track) =>
+          track.id === trackId
+            ? {
+                ...track,
+                elements: track.elements.map((element) =>
+                  element.id === elementId && element.type === "media"
+                    ? { ...element, ...updates }
+                    : element
+                ),
+              }
+            : track
+        )
+      );
+    },
+
     splitElement: (trackId, elementId, splitTime) => {
       const { _tracks } = get();
       const track = _tracks.find((t) => t.id === trackId);
@@ -1449,18 +1473,23 @@ export const useTimelineStore = create<TimelineStore>((set, get) => {
     },
 
     findOrCreateTrack: (trackType) => {
-      // Always create new text track to allow multiple text elements
-      // Insert text tracks at the top
+      // Always create new tracks to allow multiple layers of each type
       if (trackType === "text") {
+        // Insert text tracks at the top
         return get().insertTrackAt(trackType, 0);
+      } else if (trackType === "audio") {
+        // Insert audio tracks at the bottom
+        return get().addTrack(trackType);
+      } else {
+        // For media tracks (images/videos), insert near main track
+        const mainTrack = get()._tracks.find((t) => t.isMain);
+        if (mainTrack) {
+          const mainTrackIndex = get()._tracks.findIndex((t) => t.id === mainTrack.id);
+          return get().insertTrackAt(trackType, mainTrackIndex + 1);
+        } else {
+          return get().addTrack(trackType);
+        }
       }
-
-      const existingTrack = get()._tracks.find((t) => t.type === trackType);
-      if (existingTrack) {
-        return existingTrack.id;
-      }
-
-      return get().addTrack(trackType);
     },
 
     addMediaAtTime: (item, currentTime = 0) => {
@@ -1493,6 +1522,18 @@ export const useTimelineStore = create<TimelineStore>((set, get) => {
         startTime: currentTime,
         trimStart: 0,
         trimEnd: 0,
+        // Default visual properties
+        x: 0,
+        y: 0,
+        scaleX: 1.0,
+        scaleY: 1.0,
+        rotation: 0,
+        opacity: 1.0,
+        objectFit: "cover",
+        alignment: { horizontal: "center", vertical: "middle" },
+        flipHorizontal: false,
+        flipVertical: false,
+        borderRadius: 0,
       });
       return true;
     },
@@ -1536,6 +1577,18 @@ export const useTimelineStore = create<TimelineStore>((set, get) => {
         startTime: 0,
         trimStart: 0,
         trimEnd: 0,
+        // Default visual properties
+        x: 0,
+        y: 0,
+        scaleX: 1.0,
+        scaleY: 1.0,
+        rotation: 0,
+        opacity: 1.0,
+        objectFit: "cover",
+        alignment: { horizontal: "center", vertical: "middle" },
+        flipHorizontal: false,
+        flipVertical: false,
+        borderRadius: 0,
       });
       return true;
     },

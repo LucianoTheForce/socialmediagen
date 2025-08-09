@@ -125,6 +125,7 @@ export interface CarouselStore {
   exportCarousel: (format: 'individual' | 'sequence' | 'grid') => Promise<void>;
   regenerateSlide: (canvasId: string, newPrompt?: string) => Promise<void>;
   duplicateCanvas: (canvasId: string) => void;
+  createEmptyProject: (name?: string) => InstagramCarouselProject;
   
   // State Reset
   reset: () => void;
@@ -226,6 +227,17 @@ export const useCarouselStore = create<CarouselStore>()(
               try {
                 const updatedProject = addCanvasToCarousel(state.currentProject, position);
                 const newCanvasId = updatedProject.canvases.find(c => c.isActive)?.id || '';
+
+                // Ensure new canvas has an empty timeline
+                if (newCanvasId) {
+                  const timelineStore = useTimelineStore.getState();
+                  
+                  // Create completely empty timeline for the new canvas
+                  timelineStore.createCanvasTimeline(newCanvasId);
+                  
+                  // Switch to the new canvas to activate it
+                  timelineStore.switchToCanvas(newCanvasId);
+                }
 
                 return {
                   currentProject: updatedProject,
@@ -447,6 +459,21 @@ export const useCarouselStore = create<CarouselStore>()(
                startTime: 0,
                trimStart: 0,
                trimEnd: 0,
+               // Default visual properties
+               x: 0,
+               y: 0,
+               scaleX: 1.0,
+               scaleY: 1.0,
+               rotation: 0,
+               opacity: 1.0,
+               objectFit: 'cover',
+               alignment: {
+                 horizontal: 'center',
+                 vertical: 'middle'
+               },
+               flipHorizontal: false,
+               flipVertical: false,
+               borderRadius: 0,
              });
              // Text placeholders
              const textTrackId = timelineStore.findOrCreateTrack('text');
@@ -1239,6 +1266,52 @@ export const useCarouselStore = create<CarouselStore>()(
           );
         },
 
+        // Create Empty Instagram Carousel Project
+        createEmptyProject: (name?: string) => {
+          // Clear any existing project first
+          set(
+            () => ({
+              currentProject: null,
+              navigation: defaultNavigation,
+              generationProgress: defaultGenerationProgress,
+              backgroundQueue: [],
+              canvasLoadingStates: {}
+            }),
+            false,
+            'clearForNewProject'
+          );
+
+          const projectName = name || `Instagram Carousel ${new Date().toLocaleDateString()}`;
+          const emptyProject = createInstagramCarouselProject(
+            projectName,
+            'current-user',
+            {} // Empty data - will create default canvas
+          );
+
+          console.log('✅ Created new empty Instagram carousel project:', emptyProject);
+
+          // Set the project and ensure carousel mode is active by default
+          get().setCurrentProject(emptyProject);
+          get().addToHistory(emptyProject);
+
+          // Initialize timeline for the default canvas to ensure it starts empty
+          const timelineStore = useTimelineStore.getState();
+          timelineStore.clearTimeline(); // Clear any existing timeline
+          
+          // Create empty timeline for each canvas in the project
+          emptyProject.canvases.forEach((canvas) => {
+            timelineStore.createCanvasTimeline(canvas.id);
+          });
+          
+          // Switch to the first canvas to ensure proper initialization
+          const activeCanvas = emptyProject.canvases.find(c => c.isActive) || emptyProject.canvases[0];
+          if (activeCanvas) {
+            timelineStore.switchToCanvas(activeCanvas.id);
+          }
+
+          return emptyProject;
+        },
+
         // State Reset
         reset: () => {
           set(
@@ -1247,6 +1320,7 @@ export const useCarouselStore = create<CarouselStore>()(
               navigation: defaultNavigation,
               generationProgress: defaultGenerationProgress,
               backgroundQueue: [],
+              canvasLoadingStates: {},
               recentProjects: [],
               mediaAssets: {}
             }),

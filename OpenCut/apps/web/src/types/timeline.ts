@@ -18,6 +18,29 @@ interface BaseTimelineElement {
 export interface MediaElement extends BaseTimelineElement {
   type: "media";
   mediaId: string;
+  // Visual properties
+  x: number; // Position relative to canvas center
+  y: number; // Position relative to canvas center
+  scaleX: number; // Horizontal scale (1.0 = 100%)
+  scaleY: number; // Vertical scale (1.0 = 100%)
+  rotation: number; // Rotation in degrees
+  opacity: number; // Opacity 0-1
+  // Layout properties
+  objectFit: "cover" | "contain" | "fill" | "none" | "scale-down";
+  alignment: {
+    horizontal: "left" | "center" | "right";
+    vertical: "top" | "middle" | "bottom";
+  };
+  // Advanced properties
+  flipHorizontal: boolean;
+  flipVertical: boolean;
+  borderRadius: number; // Border radius in pixels
+  cropArea?: {
+    x: number; // Crop offset X (0-1)
+    y: number; // Crop offset Y (0-1)
+    width: number; // Crop width (0-1)
+    height: number; // Crop height (0-1)
+  };
 }
 
 // Text element with embedded text data

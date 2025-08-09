@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { CanvasSize, CanvasPreset } from "@/types/editor";
+import { useCarouselStore } from "@/stores/carousel";
 
 type CanvasMode = "preset" | "original" | "custom";
 
@@ -83,6 +84,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   initializeApp: async () => {
     console.log("Initializing video editor...");
     set({ isInitializing: true, isPanelsReady: false });
+
+    // Auto-create carousel project if none exists
+    const carouselStore = useCarouselStore.getState();
+    if (!carouselStore.currentProject) {
+      console.log("No project found, auto-creating carousel project...");
+      carouselStore.createEmptyProject();
+    }
 
     set({ isPanelsReady: true, isInitializing: false });
     console.log("Video editor ready");

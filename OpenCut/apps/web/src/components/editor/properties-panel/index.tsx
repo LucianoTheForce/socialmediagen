@@ -2,15 +2,24 @@
 
 import { useMediaStore } from "@/stores/media-store";
 import { useTimelineStore } from "@/stores/timeline-store";
+import { useCarouselStore } from "@/stores/carousel";
 import { ScrollArea } from "../../ui/scroll-area";
 import { AudioProperties } from "./audio-properties";
 import { MediaProperties } from "./media-properties";
 import { TextProperties } from "./text-properties";
+import { CanvasProperties } from "./canvas-properties";
+import { isInstagramCarouselProject } from "@/types/ai-timeline";
 import { SquareSlashIcon } from "lucide-react";
 
 export function PropertiesPanel() {
   const { selectedElements, tracks } = useTimelineStore();
   const { mediaItems } = useMediaStore();
+  const { currentProject } = useCarouselStore();
+
+  // Check if we're in a carousel project and no elements are selected
+  const showCanvasProperties = selectedElements.length === 0 &&
+                               currentProject &&
+                               isInstagramCarouselProject(currentProject);
 
   return (
     <>
@@ -38,12 +47,16 @@ export function PropertiesPanel() {
 
               return (
                 <div key={elementId}>
-                  <MediaProperties element={element} />
+                  <MediaProperties element={element} trackId={trackId} />
                 </div>
               );
             }
             return null;
           })}
+        </ScrollArea>
+      ) : showCanvasProperties ? (
+        <ScrollArea className="h-full bg-panel rounded-sm">
+          <CanvasProperties />
         </ScrollArea>
       ) : (
         <EmptyView />

@@ -11,6 +11,24 @@ import {
 import { TimelineTrack } from "@/types/timeline";
 import { SavedSoundsData, SavedSound, SoundEffect } from "@/types/sounds";
 
+// Runware generation types
+interface RunwareGeneration {
+  id: string;
+  prompt: string;
+  imageUrl: string;
+  timestamp: Date;
+  style: string;
+  model: string;
+  dimensions: { width: number; height: number };
+  cost: number;
+  projectId: string;
+}
+
+interface RunwareGenerationsData {
+  generations: RunwareGeneration[];
+  lastModified: string;
+}
+
 class StorageService {
   private projectsAdapter: IndexedDBAdapter<SerializedProject>;
   private savedSoundsAdapter: IndexedDBAdapter<SavedSoundsData>;
@@ -22,6 +40,7 @@ class StorageService {
       mediaDb: "video-editor-media",
       timelineDb: "video-editor-timelines",
       savedSoundsDb: "video-editor-saved-sounds",
+      runwareDb: "video-editor-runware",
       version: 1,
     };
 
@@ -56,6 +75,15 @@ class StorageService {
     return new IndexedDBAdapter<TimelineData>(
       `${this.config.timelineDb}-${projectId}`,
       "timeline",
+      this.config.version
+    );
+  }
+
+  // Helper to get project-specific Runware adapter
+  private getProjectRunwareAdapter(projectId: string) {
+    return new IndexedDBAdapter<RunwareGenerationsData>(
+      `${this.config.runwareDb}-${projectId}`,
+      "runware-generations",
       this.config.version
     );
   }
@@ -352,6 +380,109 @@ class StorageService {
       await this.savedSoundsAdapter.remove("user-sounds");
     } catch (error) {
       console.error("Failed to clear saved sounds:", error);
+      throw error;
+    }
+  }
+
+  // Runware operations - project-specific
+  async saveRunwareGeneration(projectId: string, generation: Omit<RunwareGeneration, 'projectId'>): Promise<void> {
+    try {
+      const runwareAdapter = this.getProjectRunwareAdapter(projectId);
+      const currentData = await this.loadRunwareGenerations(projectId);
+      
+      const newGeneration: RunwareGeneration = {
+        ...generation,
+        projectId,
+      };
+
+      const updatedData: RunwareGenerationsData = {
+        generations: [...currentData.generations, newGeneration],
+        lastModified: new Date().toISOString(),
+      };
+
+      await runwareAdapter.set("generations", updatedData);
+    } catch (error) {
+      console.error("Failed to save Runware generation:", error);
+      throw error;
+    }
+  }
+
+  async loadRunwareGenerations(projectId: string): Promise<RunwareGenerationsData> {
+    try {
+      const runwareAdapter = this.getProjectRunwareAdapter(projectId);
+      const data = await runwareAdapter.get("generations");
+      
+      if (data) {
+        // ✅ Fix: Ensure timestamps are properly deserialized as Date objects
+        const generationsWithDates = data.generations.map(gen => ({
+          ...gen,
+          timestamp: gen.timestamp instanceof Date ? gen.timestamp : new Date(gen.timestamp)
+        }));
+        
+        return {
+          ...data,
+          generations: generationsWithDates
+        };
+      }
+      
+      return {
+        generations: [],
+        lastModified: new Date().toISOString(),
+      };
+    } catch (error) {
+      console.error("Failed to load Runware generations:", error);
+      return {
+        generations: [],
+        lastModified: new Date().toISOString(),
+      };
+    }
+  }
+
+  async clearOldRunwareGenerations(projectId: string, keepCount: number = 20): Promise<void> {
+    try {
+      const runwareAdapter = this.getProjectRunwareAdapter(projectId);
+      const currentData = await this.loadRunwareGenerations(projectId);
+      
+      // Sort by timestamp (most recent first) and keep only the specified count
+      const sortedGenerations = currentData.generations
+        .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
+        .slice(0, keepCount);
+
+      const updatedData: RunwareGenerationsData = {
+        generations: sortedGenerations,
+        lastModified: new Date().toISOString(),
+      };
+
+      await runwareAdapter.set("generations", updatedData);
+    } catch (error) {
+      console.error("Failed to clear old Runware generations:", error);
+      throw error;
+    }
+  }
+
+  async deleteRunwareGeneration(projectId: string, generationId: string): Promise<void> {
+    try {
+      const runwareAdapter = this.getProjectRunwareAdapter(projectId);
+      const currentData = await this.loadRunwareGenerations(projectId);
+      
+      const updatedData: RunwareGenerationsData = {
+        generations: currentData.generations.filter(gen => gen.id !== generationId),
+        lastModified: new Date().toISOString(),
+      };
+
+      await runwareAdapter.set("generations", updatedData);
+    } catch (error) {
+      console.error("Failed to delete Runware generation:", error);
+      throw error;
+    }
+  }
+
+  async deleteProjectRunwareData(projectId: string): Promise<void> {
+    try {
+      const runwareAdapter = this.getProjectRunwareAdapter(projectId);
+      await runwareAdapter.clear();
+    } catch (error) {
+      console.error("Failed to delete project Runware data:", error);
       throw error;
     }
   }

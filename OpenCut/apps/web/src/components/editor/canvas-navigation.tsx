@@ -65,7 +65,7 @@ export function CanvasNavigation({
 
   const canAddMore = canvases.length < maxCanvasCount;
 
-  // 🚀 Instagram-like keyboard navigation
+  // 🚀 Instagram-like keyboard navigation + Canvas Management
   const handleKeyboardNavigation = useCallback((event: KeyboardEvent) => {
     // Only handle if we have canvases and the navigation is visible
     if (!canvases.length || !activeCanvas || !isNavigationVisible) return;
@@ -94,18 +94,50 @@ export function CanvasNavigation({
         event.preventDefault();
         nextIndex = currentIndex < canvases.length - 1 ? currentIndex + 1 : 0; // Wrap to first
         break;
+      
+      // Canvas Management Shortcuts
+      case 'd':
+      case 'D':
+        // Ctrl+Shift+D or Cmd+Shift+D to duplicate active canvas (avoiding conflict with timeline Ctrl+D)
+        if ((event.ctrlKey || event.metaKey) && event.shiftKey) {
+          event.preventDefault();
+          if (canAddMore) {
+            duplicateCanvas(activeCanvas.id);
+            console.log(`📋 Keyboard shortcut: Duplicated canvas "${activeCanvas.slideMetadata.title}"`);
+          } else {
+            console.log('⚠️ Cannot duplicate: Maximum canvas limit reached');
+          }
+          return;
+        }
+        break;
+      
+      case 'Delete':
+      case 'Backspace':
+        // Delete key to remove active canvas (only if not the last one)
+        if (canvases.length > 1) {
+          event.preventDefault();
+          removeCanvas(activeCanvas.id);
+          console.log(`🗑️ Keyboard shortcut: Removed canvas "${activeCanvas.slideMetadata.title}"`);
+        } else {
+          console.log('⚠️ Cannot remove: Must keep at least one canvas');
+        }
+        return;
+      
       default:
         return; // Don't handle other keys
     }
 
-    const nextCanvas = canvases[nextIndex];
-    if (nextCanvas && nextCanvas.id !== activeCanvas.id) {
-      setActiveCanvas(nextCanvas.id);
-      // Switch timeline context
-      useTimelineStore.getState().switchToCanvas(nextCanvas.id);
-      console.log(`🎯 Keyboard navigation: Canvas ${nextIndex + 1}/${canvases.length}`);
+    // Handle navigation (only for arrow keys)
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      const nextCanvas = canvases[nextIndex];
+      if (nextCanvas && nextCanvas.id !== activeCanvas.id) {
+        setActiveCanvas(nextCanvas.id);
+        // Switch timeline context
+        useTimelineStore.getState().switchToCanvas(nextCanvas.id);
+        console.log(`🎯 Keyboard navigation: Canvas ${nextIndex + 1}/${canvases.length}`);
+      }
     }
-  }, [canvases, activeCanvas, isNavigationVisible, setActiveCanvas]);
+  }, [canvases, activeCanvas, isNavigationVisible, setActiveCanvas, canAddMore, duplicateCanvas, removeCanvas]);
 
   // Set up keyboard event listeners
   useEffect(() => {

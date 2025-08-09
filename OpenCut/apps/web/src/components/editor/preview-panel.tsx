@@ -8,7 +8,7 @@ import { useEditorStore } from "@/stores/editor-store";
 import { VideoPlayer } from "@/components/ui/video-player";
 import { AudioPlayer } from "@/components/ui/audio-player";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, Expand, SkipBack, SkipForward } from "lucide-react";
+import { Play, Pause, Expand, SkipBack, SkipForward, Plus } from "lucide-react";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { formatTimeCode } from "@/lib/time";
@@ -18,7 +18,7 @@ import { useProjectStore } from "@/stores/project-store";
 import { TextElementDragState } from "@/types/editor";
 import { CanvasNavigation } from "@/components/editor/canvas-navigation";
 import { useCarouselStore } from "@/stores/carousel";
-import { isInstagramCarouselProject, getActiveCanvas } from "@/types/ai-timeline";
+import { isInstagramCarouselProject, getActiveCanvas, addCanvasToCarousel } from "@/types/ai-timeline";
 
 interface ActiveElement {
   element: TimelineElement;
@@ -27,10 +27,11 @@ interface ActiveElement {
 }
 
 export function PreviewPanel() {
-  const { tracks, getTotalDuration, updateTextElement } = useTimelineStore();
+  const { tracks, getTotalDuration, updateTextElement, selectedElements } = useTimelineStore();
   const { mediaItems } = useMediaStore();
   const { currentTime, toggle, setCurrentTime, isPlaying } = usePlaybackStore();
   const { canvasSize } = useEditorStore();
+  const { updateProject } = useCarouselStore();
   const previewRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [previewDimensions, setPreviewDimensions] = useState({
@@ -40,6 +41,25 @@ export function PreviewPanel() {
   const [isExpanded, setIsExpanded] = useState(false);
   const { activeProject } = useProjectStore();
   const { currentProject } = useCarouselStore();
+
+  // Detect canvas selection state (when canvas properties are shown)
+  const isCanvasSelected = Boolean(
+    selectedElements.length === 0 &&
+    currentProject &&
+    isInstagramCarouselProject(currentProject)
+  );
+
+  const handleAddCanvas = useCallback(() => {
+    if (!currentProject || !isInstagramCarouselProject(currentProject)) return;
+    
+    try {
+      const updatedProject = addCanvasToCarousel(currentProject);
+      updateProject(updatedProject);
+    } catch (error) {
+      console.error('Failed to add canvas:', error);
+      // Could add toast notification here if needed
+    }
+  }, [currentProject, updateProject]);
   const [dragState, setDragState] = useState<TextElementDragState>({
     isDragging: false,
     elementId: null,
@@ -428,38 +448,115 @@ export function PreviewPanel() {
         );
       }
 
+      // Apply visual transformations for media elements
+      const applyMediaTransform = (elementId: string) => {
+        const scaleRatio = previewDimensions.width / canvasSize.width;
+        
+        return {
+          left: `${50 + (element.x / canvasSize.width) * 100}%`,
+          top: `${50 + (element.y / canvasSize.height) * 100}%`,
+          transform: `translate(-50%, -50%)
+                     rotate(${element.rotation}deg)
+                     scale(${(element.scaleX || 1) * scaleRatio}, ${(element.scaleY || 1) * scaleRatio})
+                     ${element.flipHorizontal ? 'scaleX(-1)' : ''}
+                     ${element.flipVertical ? 'scaleY(-1)' : ''}`,
+          opacity: element.opacity || 1,
+          zIndex: 50 + index,
+        };
+      };
+
       // Video elements
       if (mediaItem.type === "video") {
         return (
           <div
             key={element.id}
-            className="absolute inset-0 flex items-center justify-center"
+            className="absolute"
+            style={applyMediaTransform(element.id)}
           >
-            <VideoPlayer
-              src={mediaItem.url!}
-              poster={mediaItem.thumbnailUrl}
-              clipStartTime={element.startTime}
-              trimStart={element.trimStart}
-              trimEnd={element.trimEnd}
-              clipDuration={element.duration}
-            />
+            <div
+              className="relative"
+              style={{
+                borderRadius: element.borderRadius ? `${element.borderRadius}px` : undefined,
+                overflow: element.borderRadius ? 'hidden' : 'visible',
+              }}
+            >
+              <VideoPlayer
+                src={mediaItem.url!}
+                poster={mediaItem.thumbnailUrl}
+                clipStartTime={element.startTime}
+                trimStart={element.trimStart}
+                trimEnd={element.trimEnd}
+                clipDuration={element.duration}
+                className={`w-full h-full ${element.objectFit === 'cover' ? 'object-cover' :
+                           element.objectFit === 'fill' ? 'object-fill' : 'object-contain'}
+                           ${element.alignment?.vertical === 'top' && element.alignment?.horizontal === 'center' ? 'object-top' :
+                             element.alignment?.vertical === 'bottom' && element.alignment?.horizontal === 'center' ? 'object-bottom' :
+                             element.alignment?.horizontal === 'left' && element.alignment?.vertical === 'middle' ? 'object-left' :
+                             element.alignment?.horizontal === 'right' && element.alignment?.vertical === 'middle' ? 'object-right' : 'object-center'}`}
+              />
+            </div>
           </div>
         );
       }
 
       // Image elements
       if (mediaItem.type === "image") {
+        // Check if this is an AI-generated image with high-resolution metadata
+        const isAIImage = (element as any).type === 'ai-image';
+        const aiMetadata = isAIImage ? (element as any).aiMetadata : null;
+        
+        // Use canvas dimensions for display, preserving aspect ratio
+        const displayWidth = canvasSize.width;
+        const displayHeight = canvasSize.height;
+        
+        // If we have generation dimensions metadata, we can add quality indicators
+        const hasHighRes = aiMetadata?.generationDimensions && (
+          aiMetadata.generationDimensions.width > displayWidth ||
+          aiMetadata.generationDimensions.height > displayHeight
+        );
+
         return (
           <div
             key={element.id}
-            className="absolute inset-0 flex items-center justify-center"
+            className="absolute"
+            style={applyMediaTransform(element.id)}
+            title={hasHighRes ?
+              `High-resolution AI image (${aiMetadata.generationDimensions.width}×${aiMetadata.generationDimensions.height} → ${displayWidth}×${displayHeight})` :
+              undefined
+            }
           >
-            <img
-              src={mediaItem.url!}
-              alt={mediaItem.name}
-              className="max-w-full max-h-full object-contain"
-              draggable={false}
-            />
+            <div
+              className="relative"
+              style={{
+                borderRadius: element.borderRadius ? `${element.borderRadius}px` : undefined,
+                overflow: element.borderRadius ? 'hidden' : 'visible',
+              }}
+            >
+              <img
+                src={mediaItem.url!}
+                alt={mediaItem.name}
+                className={`w-full h-full ${element.objectFit === 'cover' ? 'object-cover' :
+                           element.objectFit === 'fill' ? 'object-fill' : 'object-contain'}
+                           ${element.alignment?.vertical === 'top' && element.alignment?.horizontal === 'center' ? 'object-top' :
+                             element.alignment?.vertical === 'bottom' && element.alignment?.horizontal === 'center' ? 'object-bottom' :
+                             element.alignment?.horizontal === 'left' && element.alignment?.vertical === 'middle' ? 'object-left' :
+                             element.alignment?.horizontal === 'right' && element.alignment?.vertical === 'middle' ? 'object-right' : 'object-center'}`}
+                draggable={false}
+                style={{
+                  width: `${displayWidth}px`,
+                  height: `${displayHeight}px`,
+                  // Enable hardware acceleration for smooth high-res image scaling
+                  ...(hasHighRes && { transform: 'translateZ(0)' }),
+                }}
+              />
+              
+              {/* High-resolution quality indicator (only in development or with debug flag) */}
+              {hasHighRes && process.env.NODE_ENV === 'development' && (
+                <div className="absolute top-1 right-1 bg-green-500/80 text-white text-xs px-1.5 py-0.5 rounded-sm">
+                  HD
+                </div>
+              )}
+            </div>
           </div>
         );
       }
@@ -496,8 +593,9 @@ export function PreviewPanel() {
             <div
               ref={previewRef}
               className={cn(
-                "relative overflow-hidden border",
-                currentProject && isInstagramCarouselProject(currentProject) && "rounded-2xl shadow-lg"
+                "relative overflow-hidden border transition-all duration-200",
+                currentProject && isInstagramCarouselProject(currentProject) && "rounded-2xl shadow-lg",
+                isCanvasSelected && "border-blue-500 border-2 shadow-blue-500/20 shadow-lg"
               )}
               style={{
                 width: previewDimensions.width,
@@ -536,7 +634,10 @@ export function PreviewPanel() {
           
           {/* External Canvas Navigation - positioned outside preview area */}
           {currentProject && isInstagramCarouselProject(currentProject) && (
-            <CanvasNavigation position="external-bottom" />
+            <div className="flex items-center justify-center gap-3 mt-3">
+              <CanvasNavigation position="external-bottom" />
+              <AddCanvasButton onClick={handleAddCanvas} />
+            </div>
           )}
 
           <div className="flex-1" />
@@ -568,6 +669,7 @@ export function PreviewPanel() {
           setCurrentTime={setCurrentTime}
           toggle={toggle}
           getTotalDuration={getTotalDuration}
+          isCanvasSelected={isCanvasSelected}
         />
       )}
     </>
@@ -790,6 +892,7 @@ function FullscreenPreview({
   setCurrentTime,
   toggle,
   getTotalDuration,
+  isCanvasSelected,
 }: {
   previewDimensions: { width: number; height: number };
   activeProject: any;
@@ -804,14 +907,16 @@ function FullscreenPreview({
   setCurrentTime: (time: number) => void;
   toggle: () => void;
   getTotalDuration: () => number;
+  isCanvasSelected: boolean;
 }) {
   return (
     <div className="fixed inset-0 z-9999 flex flex-col">
       <div className="flex-1 flex items-center justify-center bg-background">
         <div
           className={cn(
-            "relative overflow-hidden border border-border m-3",
-            currentProject && isInstagramCarouselProject(currentProject) && "rounded-2xl shadow-xl"
+            "relative overflow-hidden border border-border m-3 transition-all duration-200",
+            currentProject && isInstagramCarouselProject(currentProject) && "rounded-2xl shadow-xl",
+            isCanvasSelected && "border-blue-500 border-2 shadow-blue-500/30 shadow-xl"
           )}
           style={{
             width: previewDimensions.width,
@@ -901,6 +1006,21 @@ function CanvasLoadingOverlay({
         </div>
       )}
     </div>
+  );
+}
+
+function AddCanvasButton({ onClick }: { onClick: () => void }) {
+  return (
+    <Button
+      variant="outline"
+      size="sm"
+      onClick={onClick}
+      className="flex items-center gap-2 bg-background/80 backdrop-blur-sm hover:bg-background"
+      title="Add new canvas to carousel"
+    >
+      <Plus className="w-4 h-4" />
+      Canvas
+    </Button>
   );
 }
 

@@ -1046,6 +1046,21 @@ function TimelineToolbar({
                         startTime: 0,
                         trimStart: 0,
                         trimEnd: 0,
+                        // Visual properties with defaults
+                        x: 0,
+                        y: 0,
+                        scaleX: 1.0,
+                        scaleY: 1.0,
+                        rotation: 0,
+                        opacity: 1.0,
+                        objectFit: "cover",
+                        alignment: {
+                          horizontal: "center",
+                          vertical: "middle",
+                        },
+                        flipHorizontal: false,
+                        flipVertical: false,
+                        borderRadius: 0,
                       });
                     }}
                     className="text-xs"

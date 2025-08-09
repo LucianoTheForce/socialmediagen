@@ -11,6 +11,7 @@ import {
   TypeIcon,
   SettingsIcon,
   Layers,
+  ImageIcon,
 } from "lucide-react";
 import { create } from "zustand";
 
@@ -25,6 +26,7 @@ export type Tab =
   | "filters"
   | "adjustment"
   | "carousel"
+  | "runware"
   | "settings";
 
 export const tabs: { [key in Tab]: { icon: LucideIcon; label: string } } = {
@@ -67,6 +69,10 @@ export const tabs: { [key in Tab]: { icon: LucideIcon; label: string } } = {
   carousel: {
     icon: Layers,
     label: "Carousel",
+  },
+  runware: {
+    icon: ImageIcon,
+    label: "Runware AI",
   },
   settings: {
     icon: SettingsIcon,

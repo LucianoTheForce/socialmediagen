@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Wand2, Loader2, Images, Palette, AlertCircle } from "lucide-react";
+import { Wand2, Loader2, Images, Palette, AlertCircle, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCarouselStore, useGenerationProgress } from "@/stores/carousel";
 import { CarouselGenerationOptions } from "@/types/ai-timeline";
@@ -60,8 +60,12 @@ export function CarouselView() {
   const [isCanvasCountOverridden, setIsCanvasCountOverridden] = useState(false);
   
   // Use real carousel store instead of local state
-  const { startGeneration, resetGeneration } = useCarouselStore();
+  const { startGeneration, resetGeneration, createEmptyProject } = useCarouselStore();
   const generationProgress = useGenerationProgress();
+
+  const handleCreateEmpty = () => {
+    createEmptyProject();
+  };
 
   // Intelligent prompt parsing effect
   useEffect(() => {
@@ -140,6 +144,23 @@ export function CarouselView() {
         </div>
         <p className="text-sm text-muted-foreground">
           Generate AI-powered Instagram carousels with custom content and backgrounds
+        </p>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="space-y-3 p-4 bg-muted/30 rounded-md">
+        <Label className="text-sm font-medium">Quick Actions</Label>
+        <Button
+          onClick={handleCreateEmpty}
+          variant="outline"
+          className="w-full"
+          disabled={generationProgress.isGenerating}
+        >
+          <Plus className="h-4 w-4" />
+          Create Empty Carousel Project
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          Start with a blank canvas and manually add content using the canvas management tools
         </p>
       </div>
 

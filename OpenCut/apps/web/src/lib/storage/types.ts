@@ -31,6 +31,7 @@ export interface StorageConfig {
   mediaDb: string;
   timelineDb: string;
   savedSoundsDb: string;
+  runwareDb: string;
   version: number;
 }
 

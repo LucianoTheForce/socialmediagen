@@ -28,7 +28,8 @@ interface RunwareResponse {
 
 export class RunwareService implements AIGenerationService {
 
-  private getFormatDimensions(format: string): { width: number; height: number } {
+  // Canvas dimensions - what the user sees/exports
+  private getCanvasDimensions(format: string): { width: number; height: number } {
     const formats: Record<string, { width: number; height: number }> = {
       'instagram-story': { width: 1080, height: 1920 },
       'instagram-post': { width: 1080, height: 1080 },
@@ -42,6 +43,43 @@ export class RunwareService implements AIGenerationService {
     };
 
     return formats[format] || { width: 1080, height: 1920 };
+  }
+
+  // Generation dimensions - Runware API compatible (multiples of 64, max 2048)
+  private getGenerationDimensions(format: string, quality: 'high' | 'medium' | 'fast' = 'high'): { width: number; height: number } {
+    const canvas = this.getCanvasDimensions(format);
+    const aspectRatio = canvas.width / canvas.height;
+    
+    // Quality-based max dimensions
+    const qualityLimits = {
+      'high': 2048,
+      'medium': 1536,
+      'fast': 1024
+    };
+    
+    const maxDimension = qualityLimits[quality];
+    
+    // Calculate dimensions maintaining aspect ratio, constrained by Runware limits
+    let genWidth: number;
+    let genHeight: number;
+    
+    if (aspectRatio >= 1) { // Landscape or square
+      genWidth = Math.min(maxDimension, 2048);
+      genHeight = Math.round(genWidth / aspectRatio);
+    } else { // Portrait
+      genHeight = Math.min(maxDimension, 2048);
+      genWidth = Math.round(genHeight * aspectRatio);
+    }
+    
+    // Round to nearest multiple of 64
+    genWidth = Math.round(genWidth / 64) * 64;
+    genHeight = Math.round(genHeight / 64) * 64;
+    
+    // Ensure within Runware constraints
+    genWidth = Math.max(128, Math.min(genWidth, 2048));
+    genHeight = Math.max(128, Math.min(genHeight, 2048));
+    
+    return { width: genWidth, height: genHeight };
   }
 
   private enhancePromptForStyle(prompt: string, style: string): string {
@@ -69,13 +107,20 @@ export class RunwareService implements AIGenerationService {
       const { runware: runwareProvider } = await import('@runware/ai-sdk-provider' as any);
       console.log('✅ AI SDK dependencies imported successfully');
       
-      const dimensions = options.dimensions || this.getFormatDimensions(options.canvasFormat);
-      console.log('📏 Resolved dimensions:', dimensions);
+      // Get quality from options (default to 'high' for best results)
+      const quality = (options as any).quality || 'high';
+      console.log(`🎯 Generation quality: ${quality}`);
+      
+      // Get both canvas and generation dimensions
+      const canvasDimensions = options.dimensions || this.getCanvasDimensions(options.canvasFormat);
+      const generationDimensions = this.getGenerationDimensions(options.canvasFormat, quality);
+      console.log('📏 Canvas dimensions:', canvasDimensions);
+      console.log('🔧 Generation dimensions (Runware-compatible):', generationDimensions);
       
       const enhancedPrompt = this.enhancePromptForCarousel(prompt, options.style || 'realistic', options.canvasFormat);
       console.log('🔧 Enhanced prompt:', enhancedPrompt);
 
-      const size = `${dimensions.width}x${dimensions.height}`;
+      const size = `${generationDimensions.width}x${generationDimensions.height}`;
       const modelId = options.model || this.selectOptimalModel(options.style);
       console.log(`🤖 Using model: ${modelId}, size: ${size}`);
 
@@ -113,9 +158,9 @@ export class RunwareService implements AIGenerationService {
         trimStart: 0,
         trimEnd: 0,
         imageUrl,
-        dimensions,
+        dimensions: canvasDimensions, // Use canvas dimensions for display
         style: options.style || 'realistic',
-        aspectRatio: dimensions.width / dimensions.height,
+        aspectRatio: canvasDimensions.width / canvasDimensions.height,
         aiMetadata: {
           provider: 'runware' as const,
           model: modelId,
@@ -129,7 +174,10 @@ export class RunwareService implements AIGenerationService {
             guidanceScale: this.getOptimalGuidanceScale(options.style),
             seed: options.seed,
             style: options.style,
+            quality, // Store the quality setting
           },
+          generationDimensions, // Store the actual generation dimensions
+          canvasDimensions, // Store the target canvas dimensions
         },
         canvasFormat: options.canvasFormat,
         isRegeneratable: true,
@@ -163,11 +211,15 @@ private enhancePromptForCarousel(prompt: string, style: string, canvasFormat: st
 
   private getFormatSpecificEnhancement(canvasFormat: string): string {
     const formatEnhancements: Record<string, string> = {
-      'instagram-post': 'square format, Instagram optimized, mobile-friendly',
-      'instagram-story': 'vertical format, story optimized, full screen mobile',
-      'tiktok': 'vertical video format, TikTok style, youth-oriented',
-      'facebook-post': 'landscape format, Facebook optimized, social engagement',
-      'linkedin-post': 'professional, business-oriented, corporate style',
+      'instagram-post': 'square format, Instagram optimized, mobile-friendly, vibrant colors, engaging',
+      'instagram-story': 'vertical format, story optimized, full screen mobile, immersive experience',
+      'instagram-reel': 'vertical video format, Reels optimized, dynamic, trendy, mobile-first',
+      'tiktok': 'vertical video format, TikTok style, youth-oriented, creative, attention-grabbing',
+      'facebook-post': 'landscape format, Facebook optimized, social engagement, community-focused',
+      'facebook-story': 'vertical format, Facebook Stories, casual, authentic, personal',
+      'linkedin-post': 'professional, business-oriented, corporate style, polished, industry-focused',
+      'twitter-post': 'landscape format, Twitter optimized, concise visual, news-worthy, trending',
+      'youtube-thumbnail': 'landscape format, YouTube optimized, eye-catching, clickable, title-friendly',
     };
 
     return formatEnhancements[canvasFormat] || 'social media optimized';
@@ -175,13 +227,15 @@ private enhancePromptForCarousel(prompt: string, style: string, canvasFormat: st
 
   private selectOptimalModel(style?: string): string {
     const modelMap: Record<string, string> = {
-      'realistic': 'civitai:4384@130072', // Realistic Vision
-      'artistic': 'civitai:4201@128713', // DreamShaper
-      'cinematic': 'civitai:43331@132760', // Cinematic
-      'minimalist': 'civitai:4384@130072', // Realistic Vision works well for clean designs
+      'realistic': 'flux-dev', // Flux Dev for realistic images
+      'artistic': 'flux-pro', // Flux Pro for artistic/creative content
+      'cinematic': 'flux-pro', // Flux Pro for cinematic quality
+      'minimalist': 'flux-dev', // Flux Dev works well for clean designs
+      'vintage': 'civitai:4201@128713', // DreamShaper for vintage styles
+      'abstract': 'flux-schnell', // Flux Schnell for abstract/quick generations
     };
 
-    return modelMap[style || 'realistic'] || 'civitai:4384@130072';
+    return modelMap[style || 'realistic'] || 'flux-dev';
   }
 
   private getOptimalSteps(style?: string): number {

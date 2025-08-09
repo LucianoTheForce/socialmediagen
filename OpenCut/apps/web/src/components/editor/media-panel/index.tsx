@@ -6,6 +6,7 @@ import { useMediaPanelStore, Tab } from "./store";
 import { TextView } from "./views/text";
 import { SoundsView } from "./views/sounds";
 import { CarouselView } from "./views/carousel";
+import { RunwareView } from "./views/runware";
 import { Separator } from "@/components/ui/separator";
 import { SettingsView } from "./views/settings";
 
@@ -47,6 +48,7 @@ export function MediaPanel() {
       </div>
     ),
     carousel: <CarouselView />,
+    runware: <RunwareView />,
     settings: <SettingsView />,
   };
 

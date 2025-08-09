@@ -84,8 +84,13 @@ export function TimelinePlayhead({
   const rawLeftPosition = trackLabelsWidth + timelinePosition - scrollLeft;
 
   // Get the timeline content width and viewport width for right boundary
-  const timelineContentWidth =
+  // During playback the playhead can advance slightly beyond the declared duration
+  // (e.g., when content keeps playing). Expand the effective width to avoid visual clamping.
+  const baseContentWidth =
     duration * TIMELINE_CONSTANTS.PIXELS_PER_SECOND * zoomLevel;
+  const playheadPx =
+    playheadPosition * TIMELINE_CONSTANTS.PIXELS_PER_SECOND * zoomLevel;
+  const timelineContentWidth = Math.max(baseContentWidth, playheadPx + 2);
   const tracksViewport = tracksScrollRef.current?.querySelector(
     "[data-radix-scroll-area-viewport]"
   ) as HTMLElement;

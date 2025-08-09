@@ -15,9 +15,9 @@ export async function POST(request: NextRequest) {
     
     const {
       prompt,
-    model = 'runware:101@1',
-    width,
-    height,
+      model = 'flux-dev',
+      width,
+      height,
       style = 'realistic',
       quality = 'standard',
       canvasFormat = 'instagram-story'
