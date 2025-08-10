@@ -483,6 +483,11 @@ export const useCarouselStore = create<CarouselStore>()(
                 const updatedProject = removeCanvasFromCarousel(state.currentProject, canvasId);
                 const activeCanvas = getActiveCanvas(updatedProject);
 
+                // Clean up canvas timeline to prevent cross-contamination
+                const timelineStore = useTimelineStore.getState();
+                timelineStore.removeCanvasTimeline(canvasId);
+                console.log(`🧹 Cleaned up timeline for canvas: ${canvasId}`);
+
                 // Clean up AI-generated media items for this canvas from media browser
                 const mediaStore = useMediaStore.getState();
                 mediaStore.removeCarouselMediaItems(state.currentProject.id, state.currentProject.id)
@@ -1485,7 +1490,15 @@ export const useCarouselStore = create<CarouselStore>()(
 
         // Create Empty Instagram Carousel Project
         createEmptyProject: (name?: string) => {
-          // Clear any existing project first
+          console.log('🧹 Starting comprehensive cleanup for new empty project...');
+          
+          // Clear all canvas timelines to prevent cross-contamination
+          useTimelineStore.getState().clearAllCanvasTimelines();
+          
+          // Clear media store to prevent cross-contamination
+          useMediaStore.getState().clearAllMedia();
+          
+          // Clear carousel store state
           set(
             () => ({
               currentProject: null,
@@ -1514,7 +1527,6 @@ export const useCarouselStore = create<CarouselStore>()(
 
           // Initialize timeline for the default canvas to ensure it starts empty
           const timelineStore = useTimelineStore.getState();
-          timelineStore.clearTimeline(); // Clear any existing timeline
           
           // Create empty timeline for each canvas in the project
           emptyProject.canvases.forEach((canvas) => {
@@ -1527,16 +1539,45 @@ export const useCarouselStore = create<CarouselStore>()(
             timelineStore.switchToCanvas(activeCanvas.id);
           }
 
+          console.log('🧹 Comprehensive cleanup completed for empty project');
           return emptyProject;
         },
 
         // Create Instagram Carousel Project with All Templates Pre-loaded
         createProjectWithAllTemplates: async (name?: string) => {
           console.log('🚀 Creating carousel project with all templates...');
+          console.log('🧹 Starting comprehensive cleanup for new template project...');
           
-          // First create an empty project
+          // Clear all canvas timelines to prevent cross-contamination
+          useTimelineStore.getState().clearAllCanvasTimelines();
+          
+          // Clear media store to prevent cross-contamination
+          useMediaStore.getState().clearAllMedia();
+          
+          // First create an empty project (without additional cleanup since we just did it)
           const projectName = name || `Carousel com Todos os Templates ${new Date().toLocaleDateString()}`;
-          const project = get().createEmptyProject(projectName);
+          
+          // Clear carousel store state
+          set(
+            () => ({
+              currentProject: null,
+              navigation: defaultNavigation,
+              generationProgress: defaultGenerationProgress,
+              backgroundQueue: [],
+              canvasLoadingStates: {}
+            }),
+            false,
+            'clearForTemplateProject'
+          );
+
+          // Generate a guaranteed-unique project id suffix to avoid reusing storage buckets
+          const project = createInstagramCarouselProject(
+            projectName,
+            `user-${Date.now()}`,
+            {}
+          );
+          
+          console.log('✅ Created new template carousel project with complete isolation:', project);
           
           try {
             // Load templates from the JSON file
@@ -1545,6 +1586,10 @@ export const useCarouselStore = create<CarouselStore>()(
             const slides = templatesData.slides || [];
             
             console.log(`📝 Loading ${slides.length} templates into project...`);
+            
+            // Set the project first
+            get().setCurrentProject(project);
+            get().addToHistory(project);
             
             // Remove the default empty canvas first
             if (project.canvases.length > 0) {
@@ -1568,6 +1613,7 @@ export const useCarouselStore = create<CarouselStore>()(
             });
             
             console.log(`✅ Successfully created carousel project with ${slides.length} templates`);
+            console.log('🧹 Comprehensive cleanup completed for template project');
             return project;
             
           } catch (error) {

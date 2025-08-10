@@ -183,6 +183,7 @@ interface TimelineStore {
   loadProjectTimeline: (projectId: string) => Promise<void>;
   saveProjectTimeline: (projectId: string) => Promise<void>;
   clearTimeline: () => void;
+  clearAllCanvasTimelines: () => void;
 
   // Multi-canvas timeline management
   switchToCanvas: (canvasId: string) => void;
@@ -1432,7 +1433,29 @@ export const useTimelineStore = create<TimelineStore>((set, get) => {
     clearTimeline: () => {
       const defaultTracks = ensureMainTrack([]);
       updateTracks(defaultTracks);
-      set({ history: [], redoStack: [], selectedElements: [] });
+      set({
+        history: [],
+        redoStack: [],
+        selectedElements: [],
+        // Clear all canvas timelines to prevent cross-contamination
+        _canvasTimelines: {},
+        _currentCanvasId: null
+      });
+    },
+
+    clearAllCanvasTimelines: () => {
+      console.log('🧹 Clearing all canvas timelines to prevent cross-contamination');
+      set({
+        _canvasTimelines: {},
+        _currentCanvasId: null,
+        history: [],
+        redoStack: [],
+        selectedElements: []
+      });
+      
+      // Reset to default empty timeline
+      const defaultTracks = ensureMainTrack([]);
+      updateTracks(defaultTracks);
     },
 
     // Snapping actions

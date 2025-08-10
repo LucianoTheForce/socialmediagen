@@ -9,6 +9,8 @@ const {
   BETTER_AUTH_SECRET,
   UPSTASH_REDIS_REST_URL,
   UPSTASH_REDIS_REST_TOKEN,
+  GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET,
 } = keys();
 
 // Create Redis client only if credentials are provided
@@ -43,11 +45,19 @@ const authConfig: any = {
   emailAndPassword: {
     enabled: true,
   },
+  socialProviders: {
+    google: {
+      clientId: GOOGLE_CLIENT_ID || "",
+      clientSecret: GOOGLE_CLIENT_SECRET || "",
+    },
+  },
   baseURL: NEXT_PUBLIC_BETTER_AUTH_URL,
   appName: "OpenCut",
   trustedOrigins: process.env.NODE_ENV === 'production' ? [] : [
     "http://localhost:3000",
-    "https://localhost:3000"
+    "http://localhost:3001",
+    "https://localhost:3000",
+    "https://localhost:3001"
   ],
 };
 

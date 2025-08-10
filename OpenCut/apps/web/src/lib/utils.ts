@@ -74,3 +74,6 @@ export function getPlatformSpecialKey() {
 export function getPlatformAlternateKey() {
   return isAppleDevice() ? "⌥" : "Alt";
 }
+
+// Alias for generateUUID for semantic clarity in different contexts
+export const generateId = generateUUID;
