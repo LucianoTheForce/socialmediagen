@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@opencut/db";
-import { timelineElements, timelineTracks, projectCanvases, projects, mediaItems } from "@opencut/db";
-import { auth } from "@/lib/auth/server";
+import { db } from "@/lib/db";
+import { timelineElements, timelineTracks, projectCanvases, projects, mediaItems } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 import { eq, and } from "drizzle-orm";
 import { generateId } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-
-    if (!session?.user) {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -26,7 +25,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    let whereConditions = [eq(projects.userId, session.user.id)];
+    let whereConditions = [eq(projects.userId, user.id)];
 
     if (trackId) {
       whereConditions.push(eq(timelineElements.trackId, trackId));
@@ -97,11 +96,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-
-    if (!session?.user) {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -160,7 +158,7 @@ export async function POST(request: NextRequest) {
       .where(
         and(
           eq(timelineTracks.id, trackId),
-          eq(projects.userId, session.user.id)
+          eq(projects.userId, user.id)
         )
       )
       .limit(1);
@@ -181,7 +179,7 @@ export async function POST(request: NextRequest) {
         .where(
           and(
             eq(mediaItems.id, mediaId),
-            eq(projects.userId, session.user.id)
+            eq(projects.userId, user.id)
           )
         )
         .limit(1);
@@ -252,11 +250,10 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-
-    if (!session?.user) {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -280,7 +277,7 @@ export async function PUT(request: NextRequest) {
       .where(
         and(
           eq(timelineElements.id, id),
-          eq(projects.userId, session.user.id)
+          eq(projects.userId, user.id)
         )
       )
       .limit(1);
@@ -313,11 +310,10 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-
-    if (!session?.user) {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -341,7 +337,7 @@ export async function DELETE(request: NextRequest) {
       .where(
         and(
           eq(timelineElements.id, id),
-          eq(projects.userId, session.user.id)
+          eq(projects.userId, user.id)
         )
       )
       .limit(1);

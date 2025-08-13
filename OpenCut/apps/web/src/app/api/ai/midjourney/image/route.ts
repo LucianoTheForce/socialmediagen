@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '~/lib/auth';
+import { createClient } from '@/lib/supabase/server';
 import { MidjourneyService } from '@/services/ai/midjourney-service';
 import { AIImageGenerationOptions } from '@/types/ai-timeline';
 
 export async function POST(request: NextRequest) {
   try {
     // Authenticate user
-    const session = await auth.api.getSession({ headers: request.headers });
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
     
-    if (!session?.user) {
+    if (error || !user?.id) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     };
 
     console.log('Starting Midjourney image generation:', {
-      userId: session.user.id,
+      userId: user.id,
       prompt: prompt.substring(0, 100) + (prompt.length > 100 ? '...' : ''),
       options,
     });
@@ -74,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     // Log successful generation
     console.log('Midjourney image generation completed:', {
-      userId: session.user.id,
+      userId: user.id,
       elementId: result.id,
       generationTime,
       cost: result.aiMetadata.cost,
@@ -134,9 +135,10 @@ export async function POST(request: NextRequest) {
 // GET endpoint for checking generation status (if needed for polling)
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
     
-    if (!session?.user) {
+    if (error || !user?.id) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }

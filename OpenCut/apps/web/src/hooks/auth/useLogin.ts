@@ -1,49 +1,58 @@
-import { useCallback, useState } from "react";
+"use client";
+
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signIn } from "~/lib/auth/client";
+import { createClient } from "@/lib/supabase/client";
 
 export function useLogin() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isEmailLoading, setIsEmailLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const router = useRouter();
+  const supabase = createClient();
 
-  const handleLogin = useCallback(async () => {
+  const isAnyLoading = isEmailLoading || isGoogleLoading;
+
+  const handleLogin = async () => {
     setError(null);
     setIsEmailLoading(true);
 
-    const { error } = await signIn.email({
-      email,
-      password,
-    });
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-    if (error) {
-      setError(error.message || "An unexpected error occurred.");
+      if (error) throw error;
+
+      router.push("/projects");
+    } catch (error: any) {
+      setError(error.message || "Failed to sign in");
+    } finally {
       setIsEmailLoading(false);
-      return;
     }
-
-    router.push("/projects");
-  }, [router, email, password]);
+  };
 
   const handleGoogleLogin = async () => {
     setError(null);
     setIsGoogleLoading(true);
 
     try {
-      await signIn.social({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        callbackURL: "/projects",
+        options: {
+          redirectTo: `${window.location.origin}/projects`,
+        },
       });
-    } catch (error) {
-      setError("Failed to sign in with Google. Please try again.");
+
+      if (error) throw error;
+    } catch (error: any) {
+      setError(error.message || "Failed to sign in with Google");
       setIsGoogleLoading(false);
     }
   };
-
-  const isAnyLoading = isEmailLoading || isGoogleLoading;
 
   return {
     email,
@@ -51,9 +60,9 @@ export function useLogin() {
     password,
     setPassword,
     error,
+    isAnyLoading,
     isEmailLoading,
     isGoogleLoading,
-    isAnyLoading,
     handleLogin,
     handleGoogleLogin,
   };

@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@opencut/db";
-import { mediaItems, projects } from "@opencut/db";
-import { auth } from "@/lib/auth/server";
-import { eq, and } from "drizzle-orm";
+import { createClient } from "@/lib/supabase/server";
 import { generateId } from "@/lib/utils";
+import { db } from "@/lib/db";
+import { mediaItems, projects } from "@/lib/db/schema";
+import { eq, and, desc } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-
-    if (!session?.user) {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -21,7 +20,7 @@ export async function GET(request: NextRequest) {
     const mediaType = searchParams.get("type");
 
     // Build where conditions
-    let whereConditions = [eq(projects.userId, session.user.id)];
+    let whereConditions = [eq(projects.userId, user.id)];
 
     if (projectId) {
       whereConditions.push(eq(mediaItems.projectId, projectId));
@@ -61,7 +60,7 @@ export async function GET(request: NextRequest) {
       .from(mediaItems)
       .innerJoin(projects, eq(mediaItems.projectId, projects.id))
       .where(and(...whereConditions))
-      .orderBy(mediaItems.createdAt);
+      .orderBy(desc(mediaItems.createdAt));
 
     return NextResponse.json(userMediaItems);
   } catch (error) {
@@ -75,11 +74,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-
-    if (!session?.user) {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -114,7 +112,7 @@ export async function POST(request: NextRequest) {
     const project = await db
       .select()
       .from(projects)
-      .where(and(eq(projects.id, projectId), eq(projects.userId, session.user.id)))
+      .where(and(eq(projects.id, projectId), eq(projects.userId, user.id)))
       .limit(1);
 
     if (project.length === 0) {
@@ -163,11 +161,10 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-
-    if (!session?.user) {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -186,7 +183,7 @@ export async function PUT(request: NextRequest) {
       .select()
       .from(mediaItems)
       .innerJoin(projects, eq(mediaItems.projectId, projects.id))
-      .where(and(eq(mediaItems.id, id), eq(projects.userId, session.user.id)))
+      .where(and(eq(mediaItems.id, id), eq(projects.userId, user.id)))
       .limit(1);
 
     if (existingMediaItem.length === 0) {
@@ -217,11 +214,10 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-
-    if (!session?.user) {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -240,7 +236,7 @@ export async function DELETE(request: NextRequest) {
       .select()
       .from(mediaItems)
       .innerJoin(projects, eq(mediaItems.projectId, projects.id))
-      .where(and(eq(mediaItems.id, id), eq(projects.userId, session.user.id)))
+      .where(and(eq(mediaItems.id, id), eq(projects.userId, user.id)))
       .limit(1);
 
     if (existingMediaItem.length === 0) {

@@ -1,103 +1,88 @@
 "use client";
 
-import { useSession } from "@/lib/auth/client";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect } from "react";
-import { Loader2 } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import type { User } from "@supabase/supabase-js";
 
-const PUBLIC_ROUTES = [
-  "/", // Home page
-  "/login",
-  "/signup",
-  "/privacy",
-  "/terms",
-  "/blog",
-  "/contributors"
-];
-
-function isPublicRoute(pathname: string): boolean {
-  // Check exact matches
-  if (PUBLIC_ROUTES.includes(pathname)) {
-    return true;
-  }
-  
-  // Check if it's a blog post route (/blog/[slug])
-  if (pathname.startsWith("/blog/") && pathname.split("/").length === 3) {
-    return true;
-  }
-  
-  // Check API routes (should be handled server-side but just in case)
-  if (pathname.startsWith("/api/")) {
-    return true;
-  }
-  
-  return false;
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+  signIn: (provider: 'google') => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
-function LoadingScreen() {
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
+  const supabase = createClient();
+
+  useEffect(() => {
+    // Check active sessions and sets the user
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    // Listen for changes on auth state (logged in, signed out, etc.)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
+
+  // Redirect to login if not authenticated (except on public pages)
+  useEffect(() => {
+    const publicPaths = ["/", "/login", "/signup", "/blog", "/privacy", "/terms", "/why-not-capcut", "/contributors", "/roadmap"];
+    const isPublicPath = publicPaths.some(path => pathname === path || pathname.startsWith("/blog/"));
+    
+    if (!loading && !user && !isPublicPath) {
+      router.push("/login");
+    }
+  }, [user, loading, pathname, router]);
+
+  const signIn = async (provider: 'google') => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo: `${window.location.origin}/projects`,
+      },
+    });
+    
+    if (error) {
+      console.error("Error signing in:", error);
+      throw error;
+    }
+  };
+
+  const signOut = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Error signing out:", error);
+      throw error;
+    }
+    router.push("/");
+  };
+
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center">
-      <div className="text-center space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin mx-auto text-white" />
-        <p className="text-white/60">Loading...</p>
-      </div>
-    </div>
+    <AuthContext.Provider value={{ user, loading, signIn, signOut }}>
+      {children}
+    </AuthContext.Provider>
   );
 }
 
-interface AuthProviderProps {
-  children: React.ReactNode;
-}
-
-export function AuthProvider({ children }: AuthProviderProps) {
-  const { data: session, isPending } = useSession();
-  const router = useRouter();
-  const pathname = usePathname();
-
-  useEffect(() => {
-    // Don't redirect during initial load
-    if (isPending) return;
-
-    const isPublic = isPublicRoute(pathname);
-
-    // If user is not authenticated and trying to access private route
-    if (!session?.user && !isPublic) {
-      // Redirect to login with return URL
-      const returnUrl = encodeURIComponent(pathname);
-      router.push(`/login?returnUrl=${returnUrl}`);
-      return;
-    }
-
-    // If user is authenticated and trying to access login/signup, redirect to editor
-    if (session?.user && (pathname === "/login" || pathname === "/signup")) {
-      // Check if there's a return URL in the query params
-      const urlParams = new URLSearchParams(window.location.search);
-      const returnUrl = urlParams.get("returnUrl");
-      
-      if (returnUrl && returnUrl !== "/login" && returnUrl !== "/signup") {
-        router.push(decodeURIComponent(returnUrl));
-      } else {
-        router.push("/editor");
-      }
-      return;
-    }
-  }, [session, isPending, pathname, router]);
-
-  // Show loading screen while checking authentication
-  if (isPending) {
-    return <LoadingScreen />;
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error("useAuth must be used within an AuthProvider");
   }
-
-  // For public routes, always show content
-  if (isPublicRoute(pathname)) {
-    return <>{children}</>;
-  }
-
-  // For private routes, only show content if authenticated
-  if (session?.user) {
-    return <>{children}</>;
-  }
-
-  // If we get here, user is being redirected to login
-  return <LoadingScreen />;
+  return context;
 }

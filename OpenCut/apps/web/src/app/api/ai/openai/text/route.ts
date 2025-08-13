@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '~/lib/auth';
+import { createClient } from '@/lib/supabase/server';
 import { openaiService } from '@/services/ai/openai-service';
 import { AITextGenerationOptions, SocialPlatform, ContentType, ToneOfVoice } from '@/services/ai/types';
 
 export async function POST(request: NextRequest) {
   try {
     // Authenticate user
-    const session = await auth.api.getSession({ headers: request.headers });
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
     
-    if (!session?.user) {
+    if (error || !user?.id) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -100,7 +101,7 @@ export async function POST(request: NextRequest) {
       maxLength: textOptions.maxLength,
       variations: textOptions.variations,
       includeHashtags: textOptions.includeHashtags,
-      userId: session.user.id
+      userId: user.id
     });
 
     // Generate text using OpenAI service
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
       contentLength: result.content.length,
       generationTime,
       cost: result.aiMetadata.cost,
-      userId: session.user.id
+      userId: user.id
     });
 
     // Return the generated text element

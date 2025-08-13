@@ -1,24 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@opencut/db";
-import { projectCanvases, projects } from "@opencut/db";
-import { auth } from "@/lib/auth/server";
-import { eq, and } from "drizzle-orm";
+import { createClient } from "@/lib/supabase/server";
+import { db } from "@/lib/db";
+import { projectCanvases, projects } from "@/lib/db/schema";
+import { eq, and, asc } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-
-    if (!session?.user) {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const projectId = params.projectId;
+    const { projectId } = await params;
 
     if (!projectId) {
       return NextResponse.json(
@@ -32,7 +31,7 @@ export async function GET(
       .select()
       .from(projects)
       .where(
-        and(eq(projects.id, projectId), eq(projects.userId, session.user.id))
+        and(eq(projects.id, projectId), eq(projects.userId, user.id))
       )
       .limit(1);
 
@@ -48,7 +47,7 @@ export async function GET(
       .select()
       .from(projectCanvases)
       .where(eq(projectCanvases.projectId, projectId))
-      .orderBy(projectCanvases.slideNumber);
+      .orderBy(asc(projectCanvases.slideNumber));
 
     return NextResponse.json(canvases);
   } catch (error) {
@@ -62,14 +61,13 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { projectId: string } }
+  { params }: { params: Promise<{ projectId: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-
-    if (!session?.user) {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -83,7 +81,7 @@ export async function POST(
       format,
     } = body;
 
-    const projectId = params.projectId;
+    const { projectId } = await params;
 
     if (!projectId) {
       return NextResponse.json(
@@ -97,7 +95,7 @@ export async function POST(
       .select()
       .from(projects)
       .where(
-        and(eq(projects.id, projectId), eq(projects.userId, session.user.id))
+        and(eq(projects.id, projectId), eq(projects.userId, user.id))
       )
       .limit(1);
 

@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@opencut/db";
-import { projects, projectCanvases } from "@opencut/db";
-import { auth } from "@/lib/auth/server";
-import { eq } from "drizzle-orm";
+import { createClient } from "@/lib/supabase/server";
 import { generateId } from "@/lib/utils";
+import { db } from "@/lib/db";
+import { projects, projectCanvases } from "@/lib/db/schema";
+import { eq, desc } from "drizzle-orm";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-    if (!session?.user?.id) {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -26,8 +26,8 @@ export async function GET(request: NextRequest) {
         updatedAt: projects.updatedAt,
       })
       .from(projects)
-      .where(eq(projects.userId, session.user.id))
-      .orderBy(projects.updatedAt);
+      .where(eq(projects.userId, user.id))
+      .orderBy(desc(projects.updatedAt));
 
     // Get canvas counts for each project
     const projectsWithCanvasCount = await Promise.all(
@@ -44,9 +44,9 @@ export async function GET(request: NextRequest) {
       })
     );
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       projects: projectsWithCanvasCount,
-      total: userProjects.length 
+      total: userProjects.length
     });
   } catch (error) {
     console.error("Error fetching projects:", error);
@@ -59,10 +59,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-    if (!session?.user?.id) {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
       .values({
         id: projectId,
         name,
-        userId: session.user.id,
+        userId: user.id,
         templateId: templateId || null,
         tags,
         carouselMetadata,
@@ -133,9 +133,9 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       project: newProject,
-      message: "Project created successfully" 
+      message: "Project created successfully"
     }, { status: 201 });
   } catch (error) {
     console.error("Error creating project:", error);

@@ -1,17 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@opencut/db";
-import { aiGenerations, projects } from "@opencut/db";
-import { auth } from "@/lib/auth/server";
+import { db } from "@/lib/db";
+import { aiGenerations, projects } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 import { eq, and, desc } from "drizzle-orm";
 import { generateId } from "@/lib/utils";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-
-    if (!session?.user) {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -21,7 +20,7 @@ export async function GET(request: NextRequest) {
     const limit = searchParams.get("limit");
     const offset = searchParams.get("offset");
 
-    let whereConditions = [eq(aiGenerations.userId, session.user.id)];
+    let whereConditions = [eq(aiGenerations.userId, user.id)];
 
     if (projectId) {
       whereConditions.push(eq(aiGenerations.projectId, projectId));
@@ -65,11 +64,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-
-    if (!session?.user) {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -97,7 +95,7 @@ export async function POST(request: NextRequest) {
         .where(
           and(
             eq(projects.id, projectId),
-            eq(projects.userId, session.user.id)
+            eq(projects.userId, user.id)
           )
         )
         .limit(1);
@@ -112,20 +110,14 @@ export async function POST(request: NextRequest) {
 
     const newGeneration = {
       id: generateId(),
-      userId: session.user.id,
+      userId: user.id,
       projectId: projectId || null,
-      canvasId: canvasId || null,
       type,
       status: "pending" as const,
       prompt,
-      options,
-      resultData: null,
-      progress: 0,
-      currentStep: null,
-      estimatedTimeRemaining: null,
-      cost: 0,
-      startTime: null,
-      completedTime: null,
+      result: null,
+      provider: null,
+      metadata: options,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -147,11 +139,10 @@ export async function POST(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-
-    if (!session?.user) {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -172,7 +163,7 @@ export async function PUT(request: NextRequest) {
       .where(
         and(
           eq(aiGenerations.id, id),
-          eq(aiGenerations.userId, session.user.id)
+          eq(aiGenerations.userId, user.id)
         )
       )
       .limit(1);
@@ -184,16 +175,8 @@ export async function PUT(request: NextRequest) {
       );
     }
 
-    // Update timestamps based on status changes
+    // Update with new timestamp - status changes are tracked via updatedAt
     const updateData = { ...updates, updatedAt: new Date() };
-    
-    if (updates.status === "generating" && !existingGeneration[0].startTime) {
-      updateData.startTime = new Date();
-    }
-    
-    if ((updates.status === "completed" || updates.status === "failed") && !existingGeneration[0].completedTime) {
-      updateData.completedTime = new Date();
-    }
 
     const [updatedGeneration] = await db
       .update(aiGenerations)
@@ -213,11 +196,10 @@ export async function PUT(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-
-    if (!session?.user) {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -238,7 +220,7 @@ export async function DELETE(request: NextRequest) {
       .where(
         and(
           eq(aiGenerations.id, id),
-          eq(aiGenerations.userId, session.user.id)
+          eq(aiGenerations.userId, user.id)
         )
       )
       .limit(1);

@@ -1,52 +1,66 @@
-import { useState, useCallback } from "react";
+"use client";
+
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signUp, signIn } from "~/lib/auth/client";
+import { createClient } from "@/lib/supabase/client";
 
 export function useSignUp() {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isEmailLoading, setIsEmailLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const router = useRouter();
+  const supabase = createClient();
 
-  const handleSignUp = useCallback(async () => {
+  const isAnyLoading = isEmailLoading || isGoogleLoading;
+
+  const handleSignUp = async () => {
     setError(null);
     setIsEmailLoading(true);
 
-    const { error } = await signUp.email({
-      name,
-      email,
-      password,
-    });
+    try {
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+          },
+        },
+      });
 
-    if (error) {
-      setError(error.message || "An unexpected error occurred.");
+      if (signUpError) throw signUpError;
+
+      // Supabase sends a confirmation email by default
+      // You might want to show a success message or redirect
+      router.push("/projects");
+    } catch (error: any) {
+      setError(error.message || "Failed to create account");
+    } finally {
       setIsEmailLoading(false);
-      return;
     }
+  };
 
-    router.push("/login");
-  }, [name, email, password, router]);
-
-  const handleGoogleSignUp = useCallback(async () => {
+  const handleGoogleSignUp = async () => {
     setError(null);
     setIsGoogleLoading(true);
 
     try {
-      await signIn.social({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/projects`,
+        },
       });
 
-      router.push("/editor");
-    } catch (error) {
-      setError("Failed to sign up with Google. Please try again.");
+      if (error) throw error;
+    } catch (error: any) {
+      setError(error.message || "Failed to sign up with Google");
       setIsGoogleLoading(false);
     }
-  }, [router]);
-
-  const isAnyLoading = isEmailLoading || isGoogleLoading;
+  };
 
   return {
     name,
@@ -56,9 +70,9 @@ export function useSignUp() {
     password,
     setPassword,
     error,
+    isAnyLoading,
     isEmailLoading,
     isGoogleLoading,
-    isAnyLoading,
     handleSignUp,
     handleGoogleSignUp,
   };

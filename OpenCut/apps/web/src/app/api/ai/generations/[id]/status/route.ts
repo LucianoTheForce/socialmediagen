@@ -1,19 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db } from "@opencut/db";
-import { aiGenerations } from "@opencut/db";
-import { auth } from "@/lib/auth/server";
+import { db } from "@/lib/db";
+import { aiGenerations } from "@/lib/db";
+import { createClient } from "@/lib/supabase/server";
 import { eq, and } from "drizzle-orm";
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: request.headers,
-    });
-
-    if (!session?.user) {
+    const supabase = await createClient();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error || !user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -27,7 +26,7 @@ export async function PATCH(
       cost,
     } = body;
 
-    const id = params.id;
+    const { id } = await params;
 
     if (!id || !status) {
       return NextResponse.json(
@@ -43,7 +42,7 @@ export async function PATCH(
       .where(
         and(
           eq(aiGenerations.id, id),
-          eq(aiGenerations.userId, session.user.id)
+          eq(aiGenerations.userId, user.id)
         )
       )
       .limit(1);
@@ -70,14 +69,8 @@ export async function PATCH(
     if (resultData !== undefined) updateData.resultData = resultData;
     if (cost !== undefined) updateData.cost = cost;
 
-    // Update timestamps based on status changes
-    if (status === "generating" && !currentGeneration.startTime) {
-      updateData.startTime = new Date();
-    }
-    
-    if ((status === "completed" || status === "failed") && !currentGeneration.completedTime) {
-      updateData.completedTime = new Date();
-    }
+    // Note: startTime and completedTime fields not currently in schema
+    // Status changes are tracked via updatedAt timestamp
 
     const [updatedGeneration] = await db
       .update(aiGenerations)
