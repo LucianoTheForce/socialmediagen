@@ -53,9 +53,6 @@ export async function GET() {
     // Check if tables exist
     const tableChecks = [
       { name: "users", table: schema.users },
-      { name: "sessions", table: schema.sessions },
-      { name: "accounts", table: schema.accounts },
-      { name: "verifications", table: schema.verifications },
     ];
 
     for (const check of tableChecks) {
