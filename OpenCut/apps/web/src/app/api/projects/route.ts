@@ -11,7 +11,19 @@ export async function GET(request: NextRequest) {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user?.id) {
+      console.error("Auth error in GET /api/projects:", error);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    console.log("Fetching projects for user:", user.id);
+
+    // Check if DATABASE_URL is configured
+    if (!process.env.DATABASE_URL) {
+      console.error("DATABASE_URL is not configured");
+      return NextResponse.json(
+        { error: "Database configuration error. Please check environment variables." },
+        { status: 500 }
+      );
     }
 
     // Get user's projects with their canvas count
@@ -49,9 +61,26 @@ export async function GET(request: NextRequest) {
       total: userProjects.length
     });
   } catch (error) {
-    console.error("Error fetching projects:", error);
+    console.error("Error fetching projects - Full error:", error);
+    
+    // Check if it's a database connection error
+    if (error instanceof Error) {
+      if (error.message.includes("DATABASE_URL") || error.message.includes("postgres") || error.message.includes("connection")) {
+        return NextResponse.json(
+          {
+            error: "Database connection error. Please ensure DATABASE_URL is configured in environment variables.",
+            details: process.env.NODE_ENV === "development" ? error.message : undefined
+          },
+          { status: 500 }
+        );
+      }
+    }
+    
     return NextResponse.json(
-      { error: "Failed to fetch projects" },
+      {
+        error: "Failed to fetch projects",
+        details: process.env.NODE_ENV === "development" ? String(error) : undefined
+      },
       { status: 500 }
     );
   }
@@ -63,16 +92,29 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error } = await supabase.auth.getUser();
     
     if (error || !user?.id) {
+      console.error("Auth error in POST /api/projects:", error);
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const body = await request.json();
+    console.log("Creating project with data:", { name: body.name, hasCarouselMetadata: !!body.carouselMetadata });
+    
     const { name, templateId, tags = [], carouselMetadata, canvases = [] } = body;
 
     if (!name || !carouselMetadata) {
+      console.error("Missing required fields:", { name: !!name, carouselMetadata: !!carouselMetadata });
       return NextResponse.json(
         { error: "Name and carousel metadata are required" },
         { status: 400 }
+      );
+    }
+
+    // Check if DATABASE_URL is configured
+    if (!process.env.DATABASE_URL) {
+      console.error("DATABASE_URL is not configured");
+      return NextResponse.json(
+        { error: "Database configuration error. Please check environment variables." },
+        { status: 500 }
       );
     }
 
@@ -138,9 +180,26 @@ export async function POST(request: NextRequest) {
       message: "Project created successfully"
     }, { status: 201 });
   } catch (error) {
-    console.error("Error creating project:", error);
+    console.error("Error creating project - Full error:", error);
+    
+    // Check if it's a database connection error
+    if (error instanceof Error) {
+      if (error.message.includes("DATABASE_URL") || error.message.includes("postgres") || error.message.includes("connection")) {
+        return NextResponse.json(
+          {
+            error: "Database connection error. Please ensure DATABASE_URL is configured in environment variables.",
+            details: process.env.NODE_ENV === "development" ? error.message : undefined
+          },
+          { status: 500 }
+        );
+      }
+    }
+    
     return NextResponse.json(
-      { error: "Failed to create project" },
+      {
+        error: "Failed to create project",
+        details: process.env.NODE_ENV === "development" ? String(error) : undefined
+      },
       { status: 500 }
     );
   }
